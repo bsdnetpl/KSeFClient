@@ -151,4 +151,35 @@ class KSeFClient {
             return false;
         }
     }
+
+    public function getSessionStatus($referenceNumber, $pageSize = 10, $pageOffset = 0, $includeDetails = true) {
+        // Budowanie URL z parametrami zapytania
+        $statusUrl = "{$this->apiUrl}/online/Session/Status/$referenceNumber";
+        $queryParams = http_build_query([
+            'PageSize' => $pageSize,
+            'PageOffset' => $pageOffset,
+            'IncludeDetails' => $includeDetails ? 'true' : 'false'
+        ]);
+        $statusUrl .= '?' . $queryParams;
+
+        // Nagłówki żądania
+        $headers = [
+            'Accept: application/json',
+            'SessionToken: ' . $this->sessionToken
+        ];
+
+        // Wysłanie żądania
+        $statusResponse = $this->sendRequest($statusUrl, null, $headers, 'GET');
+        $httpCode = $statusResponse['httpCode'];
+
+        if ($httpCode === 200) {
+            // Parsowanie odpowiedzi JSON
+            return json_decode($statusResponse['response'], true);
+        } else {
+            // Obsługa błędów
+            echo "Błąd w sprawdzaniu statusu sesji. Kod odpowiedzi HTTP: $httpCode\n";
+            echo "Treść odpowiedzi: " . $statusResponse['response'] . "\n";
+            return false;
+        }
+    }
 }
