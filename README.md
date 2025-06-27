@@ -77,6 +77,15 @@ Metoda getSessionStatus umożliwia sprawdzanie statusu sesji na podstawie numeru
     pageOffset (int) - Przesunięcie stron wyników (domyślnie: 0).
     includeDetails (bool) - Czy uwzględniać szczegóły w odpowiedzi (domyślnie: true).
 
+    	
+	### Użycie FA(3) – KSeF 2.0
+
+php
+$client = new KSeFClient($apiUrl, $nip, $apiKey, $publicKeyPath);
+$challenge = $client->getChallengeAndTimestamp();
+$encryptedToken = $client->encryptToken($apiKey, $challenge['timestamp']);
+$sessionToken = $client->getKSeFSessionTokenFA3($encryptedToken, $challenge['challenge']
+
 Obsługa błędów
 
 Klasa automatycznie obsługuje błędy cURL i HTTP, wypisując je w konsoli. Jeśli wymagane, możesz dostosować logikę obsługi błędów wewnątrz metody sendRequest.
