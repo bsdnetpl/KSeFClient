@@ -65,40 +65,37 @@ class KSeFClient {
             return false;
         }
     }
+public function getKSeFSessionTokenFA3($encryptedToken, $challenge) {
+    $dom = new DOMDocument('1.0', 'UTF-8');
+    $dom->formatOutput = true;
 
-    public function getKSeFSessionToken($encryptedToken, $challenge) {
-        $dom = new DOMDocument('1.0', 'UTF-8');
-        $dom->formatOutput = true;
+    $ns = 'http://e-dokument.mf.gov.pl/InitSessionTokenRequest';
 
-        $root = $dom->createElement('ns3:InitSessionTokenRequest');
-        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:ns2', 'http://ksef.mf.gov.pl/schema/gtw/svc/types/2021/10/01/0001');
-        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:ns3', 'http://ksef.mf.gov.pl/schema/gtw/svc/online/auth/request/2021/10/01/0001');
-        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:ns4', 'http://ksef.mf.gov.pl/schema/gtw/svc/online/types/2021/10/01/0001');
-        $dom->appendChild($root);
+    $root = $dom->createElementNS($ns, 'InitSessionTokenRequest');
+    $dom->appendChild($root);
 
-        $context = $dom->createElement('ns3:Context');
-        $root->appendChild($context);
-        $context->appendChild($dom->createElement('ns4:Challenge', $challenge));
-        $identifier = $dom->createElement('ns4:Identifier');
-        $identifier->setAttribute('xsi:type', 'ns2:SubjectIdentifierByCompanyType');
-        $identifier->appendChild($dom->createElement('ns2:Identifier', $this->nip));
-        $context->appendChild($identifier);
+    $context = $dom->createElement('Context');
+    $tokenElement = $dom->createElement('Token', trim($encryptedToken));
+    $challengeElement = $dom->createElement('Challenge', $challenge);
 
-        $tokenElement = $dom->createElement('ns4:Token', trim($encryptedToken));
-        $context->appendChild($tokenElement);
+    $context->appendChild($tokenElement);
+    $root->appendChild($context);
+    $root->appendChild($challengeElement);
 
-        $url = "{$this->apiUrl}/online/Session/InitToken";
-        $headers = ["Content-Type: application/octet-stream", "Accept: application/json"];
+    $url = "{$this->apiUrl}/online/Session/InitToken";
+    $headers = ["Content-Type: application/xml; charset=UTF-8", "Accept: application/json"];
 
-        $response = $this->sendRequest($url, $dom->saveXML(), $headers);
-        if ($response['httpCode'] === 200 || $response['httpCode'] === 201) {
-            $this->sessionToken = json_decode($response['response'], true)['sessionToken']['token'];
-            return $this->sessionToken;
-        } else {
-            echo "Błąd w uzyskiwaniu tokenu sesji.\n";
-            return false;
-        }
+    $response = $this->sendRequest($url, $dom->saveXML(), $headers);
+    if ($response['httpCode'] === 200 || $response['httpCode'] === 201) {
+        $this->sessionToken = json_decode($response['response'], true)['sessionToken']['token'];
+        return $this->sessionToken;
+    } else {
+        echo "Błąd w uzyskiwaniu tokenu sesji (FA3).\n";
+        echo $response['response'];
+        return false;
     }
+}
+
 
     public function sendInvoice($invoiceFile) {
         if (!file_exists($invoiceFile) || !is_readable($invoiceFile)) {
