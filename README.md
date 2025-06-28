@@ -84,7 +84,7 @@ php
 $client = new KSeFClient($apiUrl, $nip, $apiKey, $publicKeyPath);
 $challenge = $client->getChallengeAndTimestamp();
 $encryptedToken = $client->encryptToken($apiKey, $challenge['timestamp']);
-$sessionToken = $client->getKSeFSessionTokenFA3($encryptedToken, $challenge['challenge']
+$sessionToken = $client->getKSeFSessionTokenFA3($encryptedToken, $challenge['challenge']);
 
 Obsługa błędów
 
