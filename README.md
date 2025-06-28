@@ -1,64 +1,69 @@
-# KSeFClient
+KSeFClient
 
-`KSeFClient` to klasa PHP do integracji z Krajowym Systemem e-Faktur (KSeF). Umożliwia zarządzanie sesjami, przesyłanie faktur oraz sprawdzanie statusu sesji w systemie KSeF.
+KSeFClient to klasa PHP do integracji z Krajowym Systemem e-Faktur (KSeF). Umożliwia zarządzanie sesjami, przesyłanie faktur oraz sprawdzanie statusu sesji w systemie KSeF zgodnie ze specyfikacją FA(3).
+✅ Funkcjonalności
 
-## Funkcjonalności
+    Tworzenie tokenu sesji na podstawie tokenu API i czasu wyzwania (ChallengeTime)
 
-- Tworzenie tokenu sesji na podstawie tokenu API i czasu wyzwania.
-- Wysyłanie faktur do KSeF.
-- Zamykanie aktywnej sesji.
-- Sprawdzanie statusu sesji na podstawie numeru referencyjnego.
-- Obsługa szyfrowania przy użyciu klucza publicznego (RSA).
-- Automatyczne obsługiwanie błędów HTTP i cURL.
+    Wysyłanie faktur XML do systemu KSeF
 
-## Wymagania
+    Zamykanie aktywnej sesji KSeF
 
-- PHP 7.4 lub nowszy.
-- Rozszerzenie `curl` w PHP.
-- Rozszerzenie `openssl` w PHP.
-- Klucz publiczny systemu KSeF w formacie PEM.
+    Sprawdzanie statusu sesji po numerze referencyjnym
 
-## Instalacja
+    Szyfrowanie tokenu z użyciem klucza publicznego RSA (PEM)
 
-1. Sklonuj repozytorium:
+    Obsługa błędów HTTP i cURL z komunikatami diagnostycznymi
 
-   ```bash
-   git clone https://github.com/<username>/ksef-client.git
-   cd ksef-client
+📦 Wymagania
+
+    PHP 7.4 lub nowszy
+
+    Rozszerzenia PHP: curl, openssl
+
+    Klucz publiczny systemu KSeF w formacie .pem
+
+🚀 Instalacja
+
+    Sklonuj repozytorium:
+
+git clone https://github.com/<username>/ksef-client.git
+cd ksef-client
 
     Upewnij się, że Twój serwer PHP ma włączone rozszerzenia curl i openssl.
 
-    Umieść klucz publiczny w odpowiedniej lokalizacji na serwerze i podaj jego ścieżkę w parametrze $publicKeyPath.
+    Umieść publiczny klucz KSeF (publicKey.pem) w odpowiednim katalogu i podaj jego ścieżkę w konstruktorze klasy.
 
-Użycie
+🧩 Użycie
 Inicjalizacja klasy
 
 require 'KSeFClient.php';
 
 $apiUrl = "https://ksef-demo.mf.gov.pl/api";
 $nip = "1234567890";
-$apiKey = "your-api-key";
-$publicKeyPath = "/path/to/publicKey.pem";
+$apiKey = "twoj-token-api";
+$publicKeyPath = "/ścieżka/do/publicKey.pem";
 
 $client = new KSeFClient($apiUrl, $nip, $apiKey, $publicKeyPath);
 
-Uzyskanie tokenu sesji
+Uzyskanie tokenu sesji FA(3)
 
 $challengeData = $client->getChallengeAndTimestamp();
 $encryptedToken = $client->encryptToken($apiKey, $challengeData['challengeTime']);
 $sessionToken = $client->getKSeFSessionToken($encryptedToken, $challengeData['challenge']);
 
-Wysyłanie faktury
+Wysyłanie faktury XML
 
-$response = $client->sendInvoice('/path/to/invoice.xml');
+$response = $client->sendInvoice('/ścieżka/do/faktury.xml');
+
 if ($response) {
-    echo "Faktura została przesłana pomyślnie.";
+    echo "Faktura została przesłana pomyślnie.\n";
 }
 
 Sprawdzanie statusu sesji
 
-$referenceNumber = "your-reference-number";
-$status = $client->getSessionStatus($referenceNumber, 10, 0, true);
+$referenceNumber = "numer-referencyjny";
+$status = $client->getSessionStatus($referenceNumber);
 
 if ($status) {
     print_r($status);
@@ -68,30 +73,34 @@ Zamykanie sesji
 
 $client->terminateSession();
 
-Struktura metody getSessionStatus
+📘 Szczegóły: getSessionStatus()
 
-Metoda getSessionStatus umożliwia sprawdzanie statusu sesji na podstawie numeru referencyjnego. Przyjmuje następujące parametry:
+getSessionStatus(string $referenceNumber, int $pageSize = 10, int $pageOffset = 0, bool $includeDetails = true)
 
-    referenceNumber (string) - Numer referencyjny sesji.
-    pageSize (int) - Rozmiar strony wyników (domyślnie: 10).
-    pageOffset (int) - Przesunięcie stron wyników (domyślnie: 0).
-    includeDetails (bool) - Czy uwzględniać szczegóły w odpowiedzi (domyślnie: true).
+Parametry:
 
-    	
-	### Użycie FA(3) – KSeF 2.0
+    referenceNumber – numer referencyjny sesji
 
-php
-$client = new KSeFClient($apiUrl, $nip, $apiKey, $publicKeyPath);
-$challenge = $client->getChallengeAndTimestamp();
-$encryptedToken = $client->encryptToken($apiKey, $challenge['timestamp']);
-$sessionToken = $client->getKSeFSessionTokenFA3($encryptedToken, $challenge['challenge']);
+    pageSize – liczba wyników na stronę (domyślnie 10)
 
-Obsługa błędów
+    pageOffset – przesunięcie wyników (domyślnie 0)
 
-Klasa automatycznie obsługuje błędy cURL i HTTP, wypisując je w konsoli. Jeśli wymagane, możesz dostosować logikę obsługi błędów wewnątrz metody sendRequest.
-Licencja
+    includeDetails – czy dołączyć szczegóły faktur (domyślnie true)
 
-Projekt jest dostępny na licencji MIT. Szczegóły znajdują się w pliku LICENSE.
-Wsparcie
+🛠 Obsługa błędów
 
-W razie pytań lub problemów, otwórz zgłoszenie w sekcji Issues.
+Klasa automatycznie obsługuje:
+
+    błędy cURL (np. brak połączenia, błąd SSL)
+
+    błędy HTTP (np. 400, 401, 500)
+
+    błędy odpowiedzi KSeF (np. brak tokenu)
+
+Komunikaty są wypisywane na standardowe wyjście. Możesz rozbudować logikę błędów w metodzie sendRequest().
+📄 Licencja
+
+Projekt dostępny na licencji MIT.
+🧑‍💻 Wsparcie
+
+W razie pytań, problemów lub sugestii – otwórz zgłoszenie (Issue) w repozytorium GitHub.
