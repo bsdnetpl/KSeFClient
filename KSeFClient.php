@@ -30,7 +30,7 @@ class KSeFClient {
         curl_close($curl);
 
         if ($curlError) {
-            echo "Błąd cURL: " . $curlError . "\n";
+            echo "Błąd cURL: $curlError\n";
         }
 
         return ['response' => $response, 'httpCode' => $httpCode];
@@ -54,48 +54,59 @@ class KSeFClient {
         }
     }
 
-    private function encryptToken($token, $challengeTimeMillis) {
+    public function encryptToken($token, $challengeTimeMillis) {
         $dataToEncrypt = "$token|$challengeTimeMillis";
-        $encryptedToken = '';
         $publicKey = file_get_contents($this->publicKeyPath);
-        if (openssl_public_encrypt($dataToEncrypt, $encryptedToken, $publicKey, OPENSSL_PKCS1_PADDING)) {
-            return base64_encode($encryptedToken);
+        if (!$publicKey) {
+            echo "Nie można odczytać klucza publicznego.\n";
+            return false;
+        }
+
+        if (openssl_public_encrypt($dataToEncrypt, $encrypted, $publicKey, OPENSSL_PKCS1_PADDING)) {
+            return base64_encode($encrypted);
         } else {
             echo "Nie udało się zaszyfrować tokenu.\n";
             return false;
         }
     }
-public function getKSeFSessionTokenFA3($encryptedToken, $challenge) {
-    $dom = new DOMDocument('1.0', 'UTF-8');
-    $dom->formatOutput = true;
 
-    $ns = 'http://e-dokument.mf.gov.pl/InitSessionTokenRequest';
+    public function getKSeFSessionToken($encryptedToken, $challenge) {
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $dom->formatOutput = true;
 
-    $root = $dom->createElementNS($ns, 'InitSessionTokenRequest');
-    $dom->appendChild($root);
+        $root = $dom->createElement('ns3:InitSessionTokenRequest');
+        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:ns2', 'http://ksef.mf.gov.pl/schema/gtw/svc/types/2021/10/01/0001');
+        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:ns3', 'http://ksef.mf.gov.pl/schema/gtw/svc/online/auth/request/2021/10/01/0001');
+        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:ns4', 'http://ksef.mf.gov.pl/schema/gtw/svc/online/types/2021/10/01/0001');
+        $dom->appendChild($root);
 
-    $context = $dom->createElement('Context');
-    $tokenElement = $dom->createElement('Token', trim($encryptedToken));
-    $challengeElement = $dom->createElement('Challenge', $challenge);
+        $context = $dom->createElement('ns3:Context');
+        $root->appendChild($context);
 
-    $context->appendChild($tokenElement);
-    $root->appendChild($context);
-    $root->appendChild($challengeElement);
+        $context->appendChild($dom->createElement('ns4:Challenge', $challenge));
 
-    $url = "{$this->apiUrl}/online/Session/InitToken";
-    $headers = ["Content-Type: application/xml; charset=UTF-8", "Accept: application/json"];
+        $identifier = $dom->createElement('ns4:Identifier');
+        $identifier->setAttribute('xsi:type', 'ns2:SubjectIdentifierByCompanyType');
+        $identifier->appendChild($dom->createElement('ns2:Identifier', $this->nip));
+        $context->appendChild($identifier);
 
-    $response = $this->sendRequest($url, $dom->saveXML(), $headers);
-    if ($response['httpCode'] === 200 || $response['httpCode'] === 201) {
-        $this->sessionToken = json_decode($response['response'], true)['sessionToken']['token'];
-        return $this->sessionToken;
-    } else {
-        echo "Błąd w uzyskiwaniu tokenu sesji (FA3).\n";
-        echo $response['response'];
-        return false;
+        $tokenElement = $dom->createElement('ns4:Token', trim($encryptedToken));
+        $context->appendChild($tokenElement);
+
+        $url = "{$this->apiUrl}/online/Session/InitToken";
+        $headers = ["Content-Type: application/octet-stream", "Accept: application/json"];
+
+        $response = $this->sendRequest($url, $dom->saveXML(), $headers);
+
+        if ($response['httpCode'] === 200 || $response['httpCode'] === 201) {
+            $this->sessionToken = json_decode($response['response'], true)['sessionToken']['token'];
+            return $this->sessionToken;
+        } else {
+            echo "Błąd w uzyskiwaniu tokenu sesji.\n";
+            echo $response['response'] . "\n";
+            return false;
+        }
     }
-}
-
 
     public function sendInvoice($invoiceFile) {
         if (!file_exists($invoiceFile) || !is_readable($invoiceFile)) {
@@ -124,13 +135,11 @@ public function getKSeFSessionTokenFA3($encryptedToken, $challenge) {
         $response = $this->sendRequest("{$this->apiUrl}/online/Invoice/Send", $body, $headers, 'PUT');
         $httpCode = $response['httpCode'];
 
-        if ($httpCode === 200 || $httpCode === 201) {
-            return json_decode($response['response'], true);
-        } elseif ($httpCode === 202) {
-            echo "Żądanie zaakceptowane do przetwarzania.\n";
+        if ($httpCode === 200 || $httpCode === 201 || $httpCode === 202) {
             return json_decode($response['response'], true);
         } else {
-            echo "Błąd w wysyłaniu faktury.\n";
+            echo "Błąd w wysyłaniu faktury. HTTP $httpCode\n";
+            echo $response['response'] . "\n";
             return false;
         }
     }
@@ -145,12 +154,12 @@ public function getKSeFSessionTokenFA3($encryptedToken, $challenge) {
             return json_decode($response['response'], true);
         } else {
             echo "Błąd zamknięcia sesji.\n";
+            echo $response['response'] . "\n";
             return false;
         }
     }
 
     public function getSessionStatus($referenceNumber, $pageSize = 10, $pageOffset = 0, $includeDetails = true) {
-        // Budowanie URL z parametrami zapytania
         $statusUrl = "{$this->apiUrl}/online/Session/Status/$referenceNumber";
         $queryParams = http_build_query([
             'PageSize' => $pageSize,
@@ -159,22 +168,18 @@ public function getKSeFSessionTokenFA3($encryptedToken, $challenge) {
         ]);
         $statusUrl .= '?' . $queryParams;
 
-        // Nagłówki żądania
         $headers = [
             'Accept: application/json',
             'SessionToken: ' . $this->sessionToken
         ];
 
-        // Wysłanie żądania
         $statusResponse = $this->sendRequest($statusUrl, null, $headers, 'GET');
         $httpCode = $statusResponse['httpCode'];
 
         if ($httpCode === 200) {
-            // Parsowanie odpowiedzi JSON
             return json_decode($statusResponse['response'], true);
         } else {
-            // Obsługa błędów
-            echo "Błąd w sprawdzaniu statusu sesji. Kod odpowiedzi HTTP: $httpCode\n";
+            echo "Błąd w sprawdzaniu statusu sesji. Kod: $httpCode\n";
             echo "Treść odpowiedzi: " . $statusResponse['response'] . "\n";
             return false;
         }
