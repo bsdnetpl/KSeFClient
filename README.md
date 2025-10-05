@@ -1,106 +1,41 @@
-KSeFClient
 
-KSeFClient to klasa PHP do integracji z Krajowym Systemem e-Faktur (KSeF). Umożliwia zarządzanie sesjami, przesyłanie faktur oraz sprawdzanie statusu sesji w systemie KSeF zgodnie ze specyfikacją FA(3).
-✅ Funkcjonalności
+Obecnie prace nad klasą KSeFClient są wstrzymane do czasu wprowadzenia przez Ministerstwo Finansów nowych certyfikatów autoryzacyjnych KSeF.
+Integracja zostanie wznowiona, gdy system zacznie obsługiwać nowy mechanizm uwierzytelniania oparty na certyfikatach.
 
-    Tworzenie tokenu sesji na podstawie tokenu API i czasu wyzwania (ChallengeTime)
+🔐 Charakterystyka nowych certyfikatów KSeF
 
-    Wysyłanie faktur XML do systemu KSeF
+Nowe certyfikaty KSeF będą pełnić wyłącznie funkcję uwierzytelniającą.
+Ich zadaniem będzie jedynie potwierdzenie tożsamości użytkownika lub systemu łączącego się z KSeF.
+Nie będą zawierały informacji o uprawnieniach, dzięki czemu ich przypisanie będzie możliwe bezpośrednio w systemie.
 
-    Zamykanie aktywnej sesji KSeF
+To rozwiązanie zwiększa bezpieczeństwo, ponieważ:
 
-    Sprawdzanie statusu sesji po numerze referencyjnym
+certyfikaty będą oparte na kryptografii asymetrycznej,
 
-    Szyfrowanie tokenu z użyciem klucza publicznego RSA (PEM)
+utrudni to ich nieautoryzowane użycie,
 
-    Obsługa błędów HTTP i cURL z komunikatami diagnostycznymi
+nowy model uwierzytelniania umożliwi pracę w trybie offline („offline24”).
 
-📦 Wymagania
+📚 Więcej informacji:
+👉 Nowe zasady uwierzytelniania w KSeF – certyfikaty zastąpią tokeny
 
-    PHP 7.4 lub nowszy
 
-    Rozszerzenia PHP: curl, openssl
+Currently, the development of the KSeFClient class is on hold until the Polish Ministry of Finance introduces new KSeF authorization certificates.
+The integration will be resumed once the system supports the new authentication mechanism based on certificates.
 
-    Klucz publiczny systemu KSeF w formacie .pem
+🔐 Characteristics of the new KSeF certificates
 
-🚀 Instalacja
+The new KSeF certificates will serve authentication purposes only.
+Their main role will be to confirm the identity of the user or system connecting to KSeF.
+They will not contain authorization data, which will now be assigned directly within the KSeF system.
 
-    Sklonuj repozytorium:
+This approach improves security because:
 
-git clone https://github.com/<username>/ksef-client.git
-cd ksef-client
+certificates are based on asymmetric cryptography,
 
-    Upewnij się, że Twój serwer PHP ma włączone rozszerzenia curl i openssl.
+unauthorized use becomes much more difficult,
 
-    Umieść publiczny klucz KSeF (publicKey.pem) w odpowiednim katalogu i podaj jego ścieżkę w konstruktorze klasy.
+the new authentication model will allow operation in offline mode (“offline24”).
 
-🧩 Użycie
-Inicjalizacja klasy
-
-require 'KSeFClient.php';
-
-$apiUrl = "https://ksef-demo.mf.gov.pl/api";
-$nip = "1234567890";
-$apiKey = "twoj-token-api";
-$publicKeyPath = "/ścieżka/do/publicKey.pem";
-
-$client = new KSeFClient($apiUrl, $nip, $apiKey, $publicKeyPath);
-
-Uzyskanie tokenu sesji FA(3)
-
-$challengeData = $client->getChallengeAndTimestamp();
-$encryptedToken = $client->encryptToken($apiKey, $challengeData['challengeTime']);
-$sessionToken = $client->getKSeFSessionToken($encryptedToken, $challengeData['challenge']);
-
-Wysyłanie faktury XML
-
-$response = $client->sendInvoice('/ścieżka/do/faktury.xml');
-
-if ($response) {
-    echo "Faktura została przesłana pomyślnie.\n";
-}
-
-Sprawdzanie statusu sesji
-
-$referenceNumber = "numer-referencyjny";
-$status = $client->getSessionStatus($referenceNumber);
-
-if ($status) {
-    print_r($status);
-}
-
-Zamykanie sesji
-
-$client->terminateSession();
-
-📘 Szczegóły: getSessionStatus()
-
-getSessionStatus(string $referenceNumber, int $pageSize = 10, int $pageOffset = 0, bool $includeDetails = true)
-
-Parametry:
-
-    referenceNumber – numer referencyjny sesji
-
-    pageSize – liczba wyników na stronę (domyślnie 10)
-
-    pageOffset – przesunięcie wyników (domyślnie 0)
-
-    includeDetails – czy dołączyć szczegóły faktur (domyślnie true)
-
-🛠 Obsługa błędów
-
-Klasa automatycznie obsługuje:
-
-    błędy cURL (np. brak połączenia, błąd SSL)
-
-    błędy HTTP (np. 400, 401, 500)
-
-    błędy odpowiedzi KSeF (np. brak tokenu)
-
-Komunikaty są wypisywane na standardowe wyjście. Możesz rozbudować logikę błędów w metodzie sendRequest().
-📄 Licencja
-
-Projekt dostępny na licencji MIT.
-🧑‍💻 Wsparcie
-
-W razie pytań, problemów lub sugestii – otwórz zgłoszenie (Issue) w repozytorium GitHub.
+📚 Learn more (Polish source):
+👉 New KSeF authentication rules – certificates will replace tokens
