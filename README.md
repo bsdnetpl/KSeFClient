@@ -1,10 +1,10 @@
 Status projektu / Project Status
-🇵🇱 Polska wersja
+
 
 Obecnie prace nad klasą KSeFClient są wstrzymane do czasu wprowadzenia przez Ministerstwo Finansów nowych certyfikatów autoryzacyjnych KSeF.
 Integracja zostanie wznowiona, gdy system zacznie obsługiwać nowy mechanizm uwierzytelniania oparty na certyfikatach.
 
-🔐 Charakterystyka nowych certyfikatów KSeF
+Charakterystyka nowych certyfikatów KSeF
 
 Nowe certyfikaty KSeF będą pełnić wyłącznie funkcję uwierzytelniającą.
 Ich zadaniem będzie jedynie potwierdzenie tożsamości użytkownika lub systemu łączącego się z KSeF.
@@ -18,8 +18,8 @@ utrudni to ich nieautoryzowane użycie,
 
 nowy model uwierzytelniania umożliwi pracę w trybie offline („offline24”).
 
-📚 Więcej informacji:
-👉 Nowe zasady uwierzytelniania w KSeF – certyfikaty zastąpią tokeny
+Więcej informacji:
+Nowe zasady uwierzytelniania w KSeF – certyfikaty zastąpią tokeny
 W listopadzie: MCU i testowanie Aplikacji Podatnika
 
 Od 1 listopada 2025 r. zostanie uruchomiony Moduł Certyfikatów i Uprawnień (MCU), który umożliwi nadawanie uprawnień użytkownikom systemu.
@@ -29,11 +29,11 @@ Moduł pozwoli również na składanie wniosków o certyfikaty oraz ich pobieran
 Od 3 listopada 2025 r. użytkownicy będą mogli rozpocząć testowanie Aplikacji Podatnika KSeF 2.0 w środowisku testowym.
 Następnie, 15 listopada 2025 r., Ministerstwo Finansów udostępni aplikację w środowisku przedprodukcyjnym.
 
-EN:-------------------------------------------------------------------------------------------------------------------------------------------------------
+EN://----------------------------------------------------------------------------------
 Currently, the development of the KSeFClient class is on hold until the Polish Ministry of Finance introduces new KSeF authorization certificates.
 The integration will be resumed once the system supports the new authentication mechanism based on certificates.
 
-🔐 Characteristics of the new KSeF certificates
+ Characteristics of the new KSeF certificates
 
 The new KSeF certificates will serve authentication purposes only.
 Their main role will be to confirm the identity of the user or system connecting to KSeF.
@@ -47,8 +47,8 @@ unauthorized use becomes much more difficult,
 
 the new authentication model will allow operation in offline mode (“offline24”).
 
-📚 Learn more (Polish source):
-👉 New KSeF authentication rules – certificates will replace tokens
+ Learn more (Polish source):
+ New KSeF authentication rules – certificates will replace tokens
 In November: MCU and Taxpayer Application testing
 
 Starting from November 1, 2025, the Module of Certificates and Authorizations (MCU) will be launched.
