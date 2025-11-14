@@ -1,59 +1,148 @@
-Status projektu / Project Status
+# KSeFXAdESClient – KSeF 2.0, FA(3), XAdES + AES
+
+`KSeFXAdESClient` to lekka klasa PHP obsługująca **KSeF v2 (2.0)** z użyciem:
+
+- podpisu **XAdES** (narzędzie `xmlsec1` + Twój certyfikat KSeF),
+- pełnego flow uwierzytelnienia (`/api/v2/auth/...`),
+- **interaktywnej sesji online** (`/api/v2/sessions/online`),
+- szyfrowania faktur **FA(3)** algorytmem **AES-256-CBC**,
+- wysyłki zaszyfrowanej faktury do KSeF.
+
+Klasa jest samodzielna, nie wymaga frameworka – opiera się na `cURL`, `openssl`, `xmlsec1` i standardowych funkcjach PHP.
+
+---
+
+## Funkcjonalności
+
+- 🔐 **Uwierzytelnienie XAdES** z użyciem certyfikatu KSeF:
+  - `POST /api/v2/auth/challenge`
+  - podpis XAdES żądania przez `xmlsec1`
+  - `POST /api/v2/auth/xades-signature` → `authenticationToken` (krótkożyjący JWT)
+  - `POST /api/v2/auth/access-token` → `accessToken` + `refreshToken`
+
+- 🔑 **Pobranie kluczy publicznych KSeF**:
+  - `GET /api/v2/security/public-key-certificates`
+  - filtrowanie po `usage = SymmetricKeyEncryption`
+  - wybór ważnego certyfikatu i przygotowanie RSA-OAEP
+
+- 🧬 **Przygotowanie szyfrowania sesji interaktywnej**:
+  - generowanie klucza **AES-256** i **IV**,
+  - szyfrowanie klucza AES algorytmem **RSA-OAEP** kluczem publicznym KSeF,
+  - zwrot: `encKeyB64`, `aesKeyB64`, `ivB64`.
+
+- 💬 **Sesja interaktywna online (FA(3))**:
+  - `POST /api/v2/sessions/online`
+  - deklaracja formy FA(3) (`systemCode: "FA (3)", schemaVersion: "1-0E"`)
+  - przekazanie zaszyfrowanego klucza symetrycznego + IV
+
+- 📄 **Szyfrowanie i wysyłka faktury FA(3)**:
+  - szyfrowanie XML algorytmem **AES-256-CBC** (PKCS#7),
+  - liczenie hashy i rozmiarów (plain i encrypted),
+  - `POST /api/v2/sessions/online/{ref}/invoices`.
+
+- ℹ️ **Pomocnicze narzędzia**:
+  - mapowanie kodów statusu faktury → opis + „bootstrap class”,
+  - formatowanie wyjątków z KSeF,
+  - prosty HTTP debug (logowanie odpowiedzi).
+
+---
+
+## Wymagania
+
+- **PHP**: `>= 8.1` (typowane własności, `strict_types`)
+- Rozszerzenia PHP:
+  - `curl`
+  - `openssl`
+- Systemowe binarki:
+  - `xmlsec1` – do podpisu XAdES,
+  - `openssl` – do operacji na certyfikatach / RSA / SHA-256,
+  - powłoka `bash` (używana przy wywołaniach CLI).
+
+Certyfikat:
+
+- certyfikat / łańcuch certyfikatów w formacie **PEM** (`$certPath`),
+- klucz prywatny w formacie **PEM/PKCS#8** (`$keyPath`),
+- opcjonalne hasło do klucza (`$keyPass` lub `null`).
+
+---
+
+## Instalacja
+
+Skopiuj plik `KSeFAuth.php` do projektu (np. do `src/KSeF/KSeFXAdESClient.php`) i włącz go:
+
+```php
+require_once __DIR__ . '/KSeFAuth.php';
+Szybki start – wysyłka FA(3) do KSeF testowego
+
+Przykładowy minimalny flow (uwierzytelnienie + sesja interaktywna + wysyłka zaszyfrowanej faktury FA(3)):
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/KSeFAuth.php';
+
+// 1. Inicjalizacja klienta
+$client = new KSeFXAdESClient(
+    nip:      '1234567890',                         // NIP podmiotu
+    certPath: __DIR__ . '/certs/ksef-cert.pem',     // certyfikat (PEM)
+    keyPath:  __DIR__ . '/certs/ksef-key.pem',      // klucz prywatny (PEM/PKCS#8)
+    keyPass:  'haslo-do-klucza',                    // lub null, jeśli bez hasła
+    baseUrl:  'https://ksef-test.mf.gov.pl'         // test / produkcja
+);
+
+// (opcjonalnie) włącz prosty debug HTTP
+//$client->withHttpDebug(true);
+
+// 2. Uwierzytelnienie XAdES → accessToken
+$auth        = $client->authenticate();
+$accessToken = $auth['accessToken'];
+
+// 3. Przygotowanie klucza AES i IV oraz zaszyfrowanego klucza (RSA-OAEP)
+$enc = $client->prepareInteractiveEncryption();
+// $enc['aesKeyB64']  – klucz AES-256 (Base64)
+// $enc['ivB64']      – IV (Base64)
+// $enc['encKeyB64']  – zaszyfrowany klucz AES (RSA-OAEP, Base64)
+
+// 4. Sesja interaktywna online dla FA(3)
+$session = $client->openInteractiveSessionFA3(
+    $accessToken,
+    $enc['encKeyB64'],
+    $enc['ivB64'],
+    '1-0E'                           // wersja schematu FA(3) w KSeF 2.0
+);
+
+$sessionRef = $session['referenceNumber'];
+
+// 5. Wczytanie faktury FA(3) (surowy XML zgodny ze schematem FA(3))
+$invoiceXml = file_get_contents(__DIR__ . '/invoices/example-fa3.xml');
+
+// 6. Szyfrowanie faktury AES-256-CBC
+$encrypted = $client->encryptInvoiceAesCbc(
+    $enc['aesKeyB64'],
+    $enc['ivB64'],
+    $invoiceXml
+);
+
+// 7. Metadane: hash i rozmiary (plain + encrypted)
+$meta = $client->computeInvoiceMeta(
+    $invoiceXml,
+    $encrypted['cipherRaw']
+);
+
+// 8. Złożenie payloadu do KSeF
+$payload = array_merge($meta, [
+    'encryptedInvoiceContent' => base64_encode($encrypted['cipherRaw']),
+    'offlineMode'             => false, // tryb online
+]);
+
+// 9. Wysyłka zaszyfrowanej faktury do sesji interaktywnej
+$sendResp = $client->sendEncryptedInvoice(
+    $accessToken,
+    $sessionRef,
+    $payload
+);
+
+// 10. (Opcjonalnie) zamknięcie sesji po zakończeniu pracy
+// $client->closeInteractiveSession($accessToken, $sessionRef);
 
 
-Obecnie prace nad klasą KSeFClient są wstrzymane do czasu wprowadzenia przez Ministerstwo Finansów nowych certyfikatów autoryzacyjnych KSeF.
-Integracja zostanie wznowiona, gdy system zacznie obsługiwać nowy mechanizm uwierzytelniania oparty na certyfikatach.
-
-Charakterystyka nowych certyfikatów KSeF
-
-Nowe certyfikaty KSeF będą pełnić wyłącznie funkcję uwierzytelniającą.
-Ich zadaniem będzie jedynie potwierdzenie tożsamości użytkownika lub systemu łączącego się z KSeF.
-Nie będą zawierały informacji o uprawnieniach, dzięki czemu ich przypisanie będzie możliwe bezpośrednio w systemie.
-
-To rozwiązanie zwiększa bezpieczeństwo, ponieważ:
-
-certyfikaty będą oparte na kryptografii asymetrycznej,
-
-utrudni to ich nieautoryzowane użycie,
-
-nowy model uwierzytelniania umożliwi pracę w trybie offline („offline24”).
-
-Więcej informacji:
-Nowe zasady uwierzytelniania w KSeF – certyfikaty zastąpią tokeny
-W listopadzie: MCU i testowanie Aplikacji Podatnika
-
-Od 1 listopada 2025 r. zostanie uruchomiony Moduł Certyfikatów i Uprawnień (MCU), który umożliwi nadawanie uprawnień użytkownikom systemu.
-Uprawnienia te będą niezbędne do korzystania z Krajowego Systemu e-Faktur od 1 lutego 2026 r.
-Moduł pozwoli również na składanie wniosków o certyfikaty oraz ich pobieranie.
-
-Od 3 listopada 2025 r. użytkownicy będą mogli rozpocząć testowanie Aplikacji Podatnika KSeF 2.0 w środowisku testowym.
-Następnie, 15 listopada 2025 r., Ministerstwo Finansów udostępni aplikację w środowisku przedprodukcyjnym.
-
-EN://----------------------------------------------------------------------------------
-Currently, the development of the KSeFClient class is on hold until the Polish Ministry of Finance introduces new KSeF authorization certificates.
-The integration will be resumed once the system supports the new authentication mechanism based on certificates.
-
- Characteristics of the new KSeF certificates
-
-The new KSeF certificates will serve authentication purposes only.
-Their main role will be to confirm the identity of the user or system connecting to KSeF.
-They will not contain authorization data, which will now be assigned directly within the KSeF system.
-
-This approach improves security because:
-
-certificates are based on asymmetric cryptography,
-
-unauthorized use becomes much more difficult,
-
-the new authentication model will allow operation in offline mode (“offline24”).
-
- Learn more (Polish source):
- New KSeF authentication rules – certificates will replace tokens
-In November: MCU and Taxpayer Application testing
-
-Starting from November 1, 2025, the Module of Certificates and Authorizations (MCU) will be launched.
-It will allow users to assign permissions necessary to use the National e-Invoice System (KSeF) from February 1, 2026.
-The module will also enable users to apply for certificates and download them.
-
-From November 3, 2025, users will be able to start testing the Taxpayer Application KSeF 2.0 in the test environment.
-Then, on November 15, 2025, the Ministry of Finance will release the application in the pre-production environment.
