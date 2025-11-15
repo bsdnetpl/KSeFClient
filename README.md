@@ -144,5 +144,35 @@ $sendResp = $client->sendEncryptedInvoice(
 
 // 10. (Opcjonalnie) zamknięcie sesji po zakończeniu pracy
 // $client->closeInteractiveSession($accessToken, $sessionRef);
+```
+API udostępnia endpoint, który przyjmuje dane faktury (data wystawienia, NIP sprzedawcy, skrót SHA-256, adres API KSeF), a następnie generuje kod QR z linkiem do podglądu faktury w KSeF.
 
+API zwraca binarny plik PNG — gotowy kod QR do pobrania.
 
+Dane wejściowe (JSON)
+{
+  "data_wystawienia": "01-02-2026",
+  "nip_sprzedawcy": "1111111111",
+  "skrot_sha256": "UtQp9Gpc51y-u3xApZjIjgkpZ01js-J8KflSPW8WzIE",
+  "ulr_api": "https://ksef-test.mf.gov.pl/"
+}
+Opis parametrów:
+| Pole                 | Opis                                                       |
+| -------------------- | ---------------------------------------------------------- |
+| **data_wystawienia** | Data faktury, format `DD-MM-RRRR` lub `RRRR-MM-DD`         |
+| **nip_sprzedawcy**   | 10-cyfrowy NIP sprzedawcy                                  |
+| **skrot_sha256**     | Skrót faktury SHA-256 zakodowany Base64URL                 |
+| **ulr_api**          | Adres API KSeF (domyślnie: `https://ksef-test.mf.gov.pl/`) |
+
+CURL – przykład wywołania: 
+
+curl "https://serwer.pl/ksef/ksef_qr_api.php" \
+  -H "Content-Type: application/json" \
+  --output ksef_qr.png \
+  -d '{
+    "data_wystawienia": "01-02-2026",
+    "nip_sprzedawcy": "1111111111",
+    "skrot_sha256": "UtQp9Gpc51y-u3xApZjIjgkpZ01js-J8KflSPW8WzIE",
+    "ulr_api": "https://ksef-test.mf.gov.pl/"
+  }'
+Po wykonaniu komendy w katalogu pojawi się: ksef_qr.png
