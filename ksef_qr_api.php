@@ -1,6 +1,4 @@
 <?php
-// NIC przed tym znakiem! (zero spacji/BOM/nowej linii)
-
 // Na czas diagnozy: widzimy tylko poważne błędy, bez deprecated/notice/warning
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
