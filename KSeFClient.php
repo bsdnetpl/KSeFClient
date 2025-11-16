@@ -113,7 +113,10 @@ final class KSeFXAdESClient
 
         $ch = curl_init($url);
         $headers = ['Authorization: Bearer ' . $accessToken, 'Accept: application/json'];
-        if ($payload !== null) { $headers[] = 'Content-Type: application/json'; curl_setopt($ch, CURLOPT_POSTFIELDS, $payload); }
+        if ($payload !== null) {
+            $headers[] = 'Content-Type: application/json';
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        }
         $this->applyCommonCurl($ch, $headers, strtoupper($method));
 
         $raw = curl_exec($ch);
@@ -234,19 +237,25 @@ XML;
     }
 
     // ===== KROK 3: podpis xmlsec1 =====
-    private function signXmlWithXmlSec1(string $xmlUnsigned): string
+	    private function signXmlWithXmlSec1(string $xmlUnsigned): string
     {
-        $tmpDir = sys_get_temp_dir();
-        $inPath  = tempnam($tmpDir, 'ksef-auth-unsigned-') . '.xml';
-        $outPath = tempnam($tmpDir, 'ksef-auth-signed-')   . '.xml';
-        file_put_contents($inPath, $xmlUnsigned);
+        // tworzymy pliki tymczasowe przez helper
+        $inPath  = $this->createTempFile('ksef-auth-unsigned-');
+        $outPath = $this->createTempFile('ksef-auth-signed-');
+
+        if (file_put_contents($inPath, $xmlUnsigned) === false) {
+            @unlink($inPath);
+            @unlink($outPath);
+            throw new RuntimeException('Nie mogę zapisać pliku wejściowego: ' . $inPath);
+        }
 
         $keyForXmlsec = $this->keyPath;
         $tmpKey = null;
 
         try {
             if ($this->keyPass !== null && $this->keyPass !== '') {
-                $tmpKey = tempnam($tmpDir, 'ksef-key-') . '.key';
+                $tmpKey = $this->createTempFile('ksef-key-');
+
                 $cmd = [
                     'bash','-lc',
                     'openssl pkey -in ' . escapeshellarg($this->keyPath) .
@@ -278,13 +287,26 @@ XML;
                 throw new RuntimeException('Plik podpisany jest pusty.');
             }
 
-            try { $this->run(['xmlsec1','--verify','--pubkey-cert-pem',$this->certPath,'--id-attr:Id','ds:Signature',$outPath], $rv); } catch (\Throwable $e) {}
+            // opcjonalna walidacja
+            try {
+                $this->run(
+                    ['xmlsec1','--verify','--pubkey-cert-pem',$this->certPath,'--id-attr:Id','ds:Signature',$outPath],
+                    $rv
+                );
+            } catch (\Throwable $e) {
+                // tylko pomocniczo, bez wyjątku
+            }
+
             return $signed;
         } finally {
-            @unlink($inPath); @unlink($outPath);
-            if ($tmpKey && is_file($tmpKey)) @unlink($tmpKey);
+            @unlink($inPath);
+            @unlink($outPath);
+            if ($tmpKey && is_file($tmpKey)) {
+                @unlink($tmpKey);
+            }
         }
     }
+
 
     // ===== KROK 4: xades-signature -> authenticationToken =====
     private function postXmlForToken(string $signedXml): array
@@ -525,15 +547,15 @@ XML;
         return is_array($det) && ($det['type'] ?? null) === OPENSSL_KEYTYPE_RSA;
     }
 
-    private function rsaOaepEncryptWithCertPem(string $certPem, string $plaintext): string
+	private function rsaOaepEncryptWithCertPem(string $certPem, string $plaintext): string
     {
-        $tmpDir  = sys_get_temp_dir();
-        $certFile= tempnam($tmpDir, 'ksef-cert-') . '.pem';
-        $inFile  = tempnam($tmpDir, 'ksef-plain-');
-        $outFile = tempnam($tmpDir, 'ksef-enc-');
+        $certFile = $this->createTempFile('ksef-cert-');
+        $inFile   = $this->createTempFile('ksef-plain-');
+        $outFile  = $this->createTempFile('ksef-enc-');
 
         file_put_contents($certFile, $certPem);
-        file_put_contents($inFile, $plaintext);
+        file_put_contents($inFile,  $plaintext);
+
         try {
             $cmd = [
                 'bash','-lc',
@@ -555,13 +577,16 @@ XML;
                     throw new RuntimeException("RSA-OAEP szyfrowanie nie powiodło się.\n1) {$out}\n2) {$out2}");
                 }
             }
+
             $cipher = file_get_contents($outFile);
             if ($cipher === false || $cipher === '') {
                 throw new RuntimeException('Pusty wynik szyfrowania klucza.');
             }
             return $cipher;
         } finally {
-            @unlink($certFile); @unlink($inFile); @unlink($outFile);
+            @unlink($certFile);
+            @unlink($inFile);
+            @unlink($outFile);
         }
     }
 
@@ -631,9 +656,9 @@ XML;
 
         $cipher = openssl_encrypt(
             $plaintext,
-            'aes-256-cbc',   // <— ważne
+            'aes-256-cbc',
             $key,
-            OPENSSL_RAW_DATA, // zwrot czystych bajtów
+            OPENSSL_RAW_DATA,
             $iv
         );
 
@@ -678,6 +703,30 @@ XML;
         foreach ($pipes as $h) if (\is_resource($h)) fclose($h);
         $exitCode = proc_close($p);
         return trim(($out ?? '') . ($err ? ("\n".$err) : ''));
+    }
+
+    /**
+     * Zwraca katalog tymczasowy, gwarantując, że jest zapisywalny.
+     * Najpierw próbuje sys_get_temp_dir(), jeśli nie – używa __DIR__.'/tmp'.
+     */
+    private function getTmpDir(): string
+    {
+        $dir = sys_get_temp_dir();
+        if (is_dir($dir) && is_writable($dir)) {
+            return rtrim($dir, DIRECTORY_SEPARATOR);
+        }
+
+        $fallback = __DIR__ . DIRECTORY_SEPARATOR . 'tmp';
+        if (!is_dir($fallback)) {
+            if (!mkdir($fallback, 0770, true) && !is_dir($fallback)) {
+                throw new RuntimeException('Nie mogę utworzyć katalogu tymczasowego: ' . $fallback);
+            }
+        }
+        if (!is_writable($fallback)) {
+            throw new RuntimeException('Katalog tymczasowy nie jest zapisywalny: ' . $fallback);
+        }
+
+        return rtrim($fallback, DIRECTORY_SEPARATOR);
     }
 
     private function detectSignatureMethod(): string
@@ -731,16 +780,31 @@ XML;
     private function strAdd(string $a, string $b): string
     {
         $a=strrev($a); $b=strrev($b); $carry=0; $out=''; $len=max(strlen($a),strlen($b));
-        for ($i=0;$i<$len;$i++){ $da=$i<strlen($a)?(int)$a[$i]:0; $db=$i<strlen($b)?(int)$b[$i]:0;
-            $s=$da+$db+$carry; $out.=(string)($s%10); $carry=intdiv($s,10); }
-        if ($carry) $out.=(string)$carry; return strrev($out);
+        for ($i=0;$i<$len;$i++){
+            $da=$i<strlen($a)?(int)$a[$i]:0;
+            $db=$i<strlen($b)?(int)$b[$i]:0;
+            $s=$da+$db+$carry;
+            $out.=(string)($s%10);
+            $carry=intdiv($s,10);
+        }
+        if ($carry) $out.=(string)$carry;
+        return strrev($out);
     }
     private function strMul(string $a, int $m): string
     {
         $a=strrev($a); $carry=0; $out='';
-        for ($i=0;$i<strlen($a);$i++){ $da=(int)$a[$i]; $p=$da*$m+$carry; $out.=(string)($p%10); $carry=intdiv($p,10); }
-        while($carry>0){ $out.=(string)($carry%10); $carry=intdiv($carry,10); }
-        $res=strrev($out); return ltrim($res,'0')===''?'0':ltrim($res,'0');
+        for ($i=0;$i<strlen($a);$i++){
+            $da=(int)$a[$i];
+            $p=$da*$m+$carry;
+            $out.=(string)($p%10);
+            $carry=intdiv($p,10);
+        }
+        while($carry>0){
+            $out.=(string)($carry%10);
+            $carry=intdiv($carry,10);
+        }
+        $res=strrev($out);
+        return ltrim($res,'0')==='' ? '0' : ltrim($res,'0');
     }
 
     private function applyCommonCurl($ch, array $headers, string $method = 'GET', int $timeout = 30): void
@@ -756,6 +820,39 @@ XML;
             curl_setopt($ch, CURLOPT_HEADER, true);
         }
     }
+	
+        /**
+     * Tworzy tymczasowy plik, próbuje najpierw w sys_get_temp_dir(),
+     * potem w __DIR__/tmp. Zwraca pełną ścieżkę.
+     */
+    private function createTempFile(string $prefix): string
+    {
+        // 1) systemowy katalog tymczasowy
+        $dir = sys_get_temp_dir();
+        if (is_dir($dir) && is_writable($dir)) {
+            $path = @tempnam($dir, $prefix);
+            if ($path !== false) {
+                return $path;
+            }
+        }
+
+        // 2) fallback: ./tmp obok pliku klasy
+        $fallback = __DIR__ . DIRECTORY_SEPARATOR . 'tmp';
+        if (!is_dir($fallback)) {
+            @mkdir($fallback, 0770, true);
+        }
+        if (!is_dir($fallback) || !is_writable($fallback)) {
+            throw new RuntimeException('Brak zapisywalnego katalogu tymczasowego (sys_get_temp_dir ani ' . $fallback . ').');
+        }
+
+        $path = @tempnam($fallback, $prefix);
+        if ($path === false) {
+            throw new RuntimeException('tempnam() nie udało się ani w sys_get_temp_dir(), ani w ' . $fallback);
+        }
+
+        return $path;
+    }
+	
 
     /**
      * Zamknięcie sesji interaktywnej i start generowania zbiorczego UPO.
@@ -772,7 +869,6 @@ XML;
         $url = $this->absoluteUrl('/api/v2/sessions/online/' . rawurlencode($sessionReferenceNumber) . '/close');
 
         $ch = curl_init($url);
-        // brak body; samo żądanie POST z Bearer
         $headers = [
             'Authorization: Bearer ' . $accessToken,
             'Accept: application/json',
@@ -790,10 +886,9 @@ XML;
         curl_close($ch);
 
         if ($code === 204) {
-            return true; // OK, sesja zamknięta
+            return true;
         }
 
-        // Jeśli serwer zwrócił treść (np. 400 z Exception), spróbujmy zinterpretować
         if ($code === 400) {
             $err = json_decode($raw, true);
             if (is_array($err) && isset($err['Exception'])) {
@@ -803,11 +898,9 @@ XML;
             throw new RuntimeException("KSeF 400 (close session): " . $raw);
         }
 
-        // Inne kody
         if ($raw === '' || $raw === null) {
             throw new RuntimeException("Błąd HTTP {$code} przy zamykaniu sesji (pusta odpowiedź).");
         }
-        // Spróbuj chociaż pokazać JSON, jeśli jest
         $maybe = json_decode($raw, true);
         if (is_array($maybe) && isset($maybe['Exception'])) {
             $msg = $this->formatKsefException($maybe['Exception']);
@@ -821,33 +914,6 @@ XML;
      *
      * Endpoint:
      *   GET /api/v2/sessions/{referenceNumber}/invoices/{invoiceReferenceNumber}
-     *
-     * Wymagane uprawnienia:
-     *   InvoiceWrite, Introspection, PefInvoiceWrite
-     *
-     * Autoryzacja:
-     *   Authorization: Bearer <accessToken>
-     *
-     * Sukces (200):
-     *   Zwraca tablicę w stylu:
-     *   [
-     *     'ordinalNumber'   => 2,
-     *     'referenceNumber' => '20250626-EE-2F20AD2000-242386DF86-52',
-     *     'invoicingDate'   => '2025-07-11T12:23:56.0154302+00:00',
-     *     'status' => [
-     *       'code'        => 440,
-     *       'description' => 'Duplikat faktury',
-     *       'details'     => [ '...' ],
-     *     ],
-     *   ]
-     *
-     * Błąd (400):
-     *   JSON z "Exception" -> rzuca RuntimeException z opisem.
-     *
-     * @param string $accessToken          Access Token (Bearer)
-     * @param string $sessionReference     Numer referencyjny sesji (SO-...)
-     * @param string $invoiceReference     Numer referencyjny faktury (EE-...)
-     * @return array                       Zdekodowana odpowiedź JSON przy 200.
      *
      * @throws RuntimeException
      */
@@ -884,7 +950,6 @@ XML;
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        // 200 -> poprawny JSON ze statusem faktury
         if ($code === 200) {
             $decoded = json_decode($raw, true);
             if (!is_array($decoded)) {
@@ -893,7 +958,6 @@ XML;
             return $decoded;
         }
 
-        // 400 -> struktura z "Exception"
         if ($code === 400) {
             $err = json_decode($raw, true);
             if (is_array($err) && isset($err['Exception'])) {
@@ -903,7 +967,6 @@ XML;
             throw new RuntimeException("KSeF 400 (status faktury): " . $raw);
         }
 
-        // inne kody HTTP – spróbuj wyciągnąć Exception, jeśli jest
         $maybe = json_decode($raw, true);
         if (is_array($maybe) && isset($maybe['Exception'])) {
             $msg = $this->formatKsefException($maybe['Exception']);
@@ -916,17 +979,12 @@ XML;
 
         throw new RuntimeException("Błąd HTTP {$code} (status faktury): " . $raw);
     }
-	    /**
+
+    /**
      * Pobranie UPO faktury z sesji na podstawie numeru KSeF.
      *
      * Endpoint:
      *   GET /api/v2/sessions/{referenceNumber}/invoices/ksef/{ksefNumber}/upo
-     *
-     * Wymagane uprawnienia:
-     *   InvoiceWrite, Introspection, PefInvoiceWrite
-     *
-     * Zwraca:
-     *   string (XML UPO)
      *
      * @throws RuntimeException
      */
@@ -963,12 +1021,10 @@ XML;
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        // 200 -> poprawne XML UPO
         if ($code === 200) {
             return $raw;
         }
 
-        // 400 -> struktura z "Exception"
         if ($code === 400) {
             $err = json_decode($raw, true);
             if (is_array($err) && (isset($err['Exception']) || isset($err['exception']))) {
@@ -981,7 +1037,6 @@ XML;
             throw new RuntimeException("KSeF 400 (UPO): " . $raw);
         }
 
-        // inne kody HTTP – spróbuj wyciągnąć Exception, jeśli jest
         $maybe = json_decode($raw, true);
         if (is_array($maybe) && (isset($maybe['Exception']) || isset($maybe['exception']))) {
             $exNode = $maybe['Exception'] ?? $maybe['exception'];
@@ -998,25 +1053,11 @@ XML;
         throw new RuntimeException("Błąd HTTP {$code} (UPO): " . $raw);
     }
 
-
     /**
      * Interpretacja statusu faktury z KSeF (pole "status").
-     *
-     * Wejście:
-     *   - kod (int) z pola "status.code"
-     *
-     * Zwraca:
-     *   [
-     *     'code'        => 200,
-     *     'name'        => 'Sukces',
-     *     'description' => 'Faktura przetworzona poprawnie.',
-     *     'detailsHint' => 'Sprawdź pole status.details z odpowiedzi KSeF.',
-     *     'bootstrap'   => 'success',
-     *   ]
      */
     public function describeInvoiceStatus(int $code): array
     {
-        // mapowanie z dokumentacji
         $map = [
             100 => [
                 'name'        => 'Faktura przyjęta do dalszego przetwarzania',
@@ -1100,5 +1141,4 @@ XML;
         ];
     }
 }
-
 
