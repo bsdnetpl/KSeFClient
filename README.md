@@ -173,4 +173,5 @@ curl -X POST "https://serwer.pl/ksef/ksef_qr_api.php?key=xxx" \
   -F "ulr_api=https://ksef-test.mf.gov.pl/" \
   --remote-header-name \
   --remote-name
+
 Po wykonaniu komendy w katalogu pojawi się: guid.png
