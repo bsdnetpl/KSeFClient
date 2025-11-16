@@ -166,13 +166,11 @@ Opis parametrów:
 
 CURL – przykład wywołania: 
 
-curl "https://serwer.pl/ksef/ksef_qr_api.php" \
-  -H "Content-Type: application/json" \
-  --output ksef_qr.png \
-  -d '{
-    "data_wystawienia": "01-02-2026",
-    "nip_sprzedawcy": "1111111111",
-    "skrot_sha256": "UtQp9Gpc51y-u3xApZjIjgkpZ01js-J8KflSPW8WzIE",
-    "ulr_api": "https://ksef-test.mf.gov.pl/"
-  }'
-Po wykonaniu komendy w katalogu pojawi się: ksef_qr.png
+curl -X POST "https://serwer.pl/ksef/ksef_qr_api.php?key=xxx" \
+  -F "xml_file=@fa3.xml" \
+  -F "data_wystawienia=14-11-2025" \
+  -F "nip_sprzedawcy=1111111111" \
+  -F "ulr_api=https://ksef-test.mf.gov.pl/" \
+  --remote-header-name \
+  --remote-name
+Po wykonaniu komendy w katalogu pojawi się: guid.png
