@@ -11,9 +11,9 @@ require __DIR__ . '/KSeFAuth.php';
 
 // ===================== KONFIG =====================
 $nip      = '1111111111';
-$crtPath  = __DIR__ . '/main_nip.crt';
-$keyPath  = __DIR__ . '/main_nip.key';
-$keyPass  = trim(@file_get_contents(__DIR__ . '/pass.txt')) ?: null; // null jeśli bez hasła
+$crtPath  = __DIR__ . '/main_nip.crt';                                                          // Dla wyjaśnienia: projekt testowy pobiera te dane z plików niezakodowanych. W środowisku
+$keyPath  = __DIR__ . '/main_nip.key';                                                          // produkcyjnym jest to niedopuszczalne — dane powinny być przechowywane np. w bazie, w formie
+$keyPass  = trim(@file_get_contents(__DIR__ . '/pass.txt')) ?: null; // null jeśli bez hasła    // zaszyfrowanej. Dopiero podczas użycia powinny być odszyfrowywane i wykorzystywane, i to wyłącznie po stronie serwera.
 $baseUrl  = 'https://ksef-test.mf.gov.pl';
 
 // Stała ścieżka do pliku faktury FA(3), bez uploadu
