@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-ini_set('display_errors','1');
+ini_set('display_errors', '1');
 error_reporting(E_ALL);
 header('Content-Type: text/html; charset=utf-8');
 
@@ -28,8 +28,10 @@ if (isset($_GET['reset'])) {
 }
 
 // Pomocnicze: bezpieczny stringify do <pre>
-$toString = function($v): string {
-    if (is_string($v)) return $v;
+$toString = function ($v): string {
+    if (is_string($v)) {
+        return $v;
+    }
     if (is_array($v) || is_object($v)) {
         return json_encode($v, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
     }
@@ -152,7 +154,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
         if ($ksefNumber !== '') {
             $_SESSION['lastKsefNumber'] = $ksefNumber;
         }
-
     } catch (Throwable $e) {
         $statusError = $e->getMessage();
     }
@@ -182,7 +183,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_u
 
         // zapamiętaj ostatnio użyty numer KSeF
         $_SESSION['lastKsefNumber'] = $ksefNumber;
-
     } catch (Throwable $e) {
         $upoError = $e->getMessage();
     }
@@ -246,15 +246,19 @@ if ($validUntilStr !== '') {
         $dtPl  = new DateTime($validUntilStr);
         $dtPl->setTimezone(new DateTimeZone('Europe/Warsaw'));
         $validPl = $dtPl->format('Y-m-d H:i:s T');
-    } catch (\Throwable $e) { /* ignore */ }
+    } catch (\Throwable $e) {
+/* ignore */
+    }
 }
 
 // JWT podgląd (opcjonalnie)
 $jwtInfo = [];
 if ($authToken !== '') {
     $parts = explode('.', $authToken);
-    $dec = function(string $b64url) {
-        if ($b64url === '') return null;
+    $dec = function (string $b64url) {
+        if ($b64url === '') {
+            return null;
+        }
         $b64 = strtr($b64url, '-_', '+/');
         $pad = strlen($b64) % 4 ? 4 - strlen($b64) % 4 : 0;
         $b64 .= str_repeat('=', $pad);
@@ -286,22 +290,22 @@ $haveSession = isset($_SESSION['sessionReference']) && $_SESSION['sessionReferen
   <div class="card shadow-sm mb-4">
     <div class="card-body">
       <h2 class="h6">Tokeny</h2>
-      <?php if ($authError): ?>
+      <?php if ($authError) : ?>
         <div class="alert alert-danger"><strong>Błąd autoryzacji:</strong><br><?= htmlspecialchars($authError) ?></div>
-      <?php else: ?>
+      <?php else : ?>
         <div class="row g-3">
           <div class="col-lg-6">
             <div class="border rounded p-3 h-100">
               <h3 class="h6 text-success">Authentication Token (JWT)</h3>
               <pre><?= htmlspecialchars($authToken) ?></pre>
-              <?php if ($validUntilStr): ?>
+              <?php if ($validUntilStr) : ?>
                 <div class="small text-muted mb-2">VALID_UNTIL (KSeF): <strong><?= htmlspecialchars($validUntilStr) ?></strong></div>
                 <div class="row row-cols-1 row-cols-md-2 g-2">
                   <div class="col"><div class="small text-muted">UTC</div><div><?= htmlspecialchars($validUtc) ?></div></div>
                   <div class="col"><div class="small text-muted">Europe/Warsaw</div><div><?= htmlspecialchars($validPl) ?></div></div>
                 </div>
               <?php endif; ?>
-              <?php if (!empty($jwtInfo)): ?>
+              <?php if (!empty($jwtInfo)) : ?>
                 <details class="mt-2">
                   <summary>Podgląd JWT (bez weryfikacji)</summary>
                   <pre><?= htmlspecialchars(json_encode($jwtInfo, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)) ?></pre>
@@ -313,7 +317,7 @@ $haveSession = isset($_SESSION['sessionReference']) && $_SESSION['sessionReferen
             <div class="border rounded p-3 h-100">
               <h3 class="h6 text-primary">Access Token (Bearer do API)</h3>
               <pre><?= htmlspecialchars($accessToken) ?></pre>
-              <?php if (!empty($refreshToken)): ?>
+              <?php if (!empty($refreshToken)) : ?>
                 <div class="mt-2">
                   <div class="small text-muted">Refresh Token</div>
                   <pre class="mb-0"><?= htmlspecialchars($refreshToken) ?></pre>
@@ -336,7 +340,7 @@ $haveSession = isset($_SESSION['sessionReference']) && $_SESSION['sessionReferen
         <span>Sesja interaktywna (FA 3)</span>
         <span class="d-flex gap-2">
           <a class="btn btn-outline-danger btn-sm" href="?reset=1">Wyczyść sesję</a>
-          <?php if ($haveSession && $accessToken): ?>
+          <?php if ($haveSession && $accessToken) : ?>
             <form method="post" class="d-inline">
               <input type="hidden" name="action" value="close_session">
               <button class="btn btn-warning btn-sm" onclick="return confirm('Zamknąć sesję i rozpocząć generowanie zbiorczego UPO?');">
@@ -347,13 +351,13 @@ $haveSession = isset($_SESSION['sessionReference']) && $_SESSION['sessionReferen
         </span>
       </h2>
 
-      <?php if ($closeOk): ?>
+      <?php if ($closeOk) : ?>
         <div class="alert alert-success">Sesja została zamknięta — rozpoczęto generowanie zbiorczego UPO.</div>
-      <?php elseif ($closeError): ?>
+      <?php elseif ($closeError) : ?>
         <div class="alert alert-danger"><strong>Błąd zamykania:</strong><br><pre class="mb-0"><?= htmlspecialchars($closeError) ?></pre></div>
       <?php endif; ?>
 
-      <?php if ($haveSession): ?>
+      <?php if ($haveSession) : ?>
         <div class="alert alert-success mb-3">
           <div><strong>referenceNumber:</strong> <?= htmlspecialchars($_SESSION['sessionReference']) ?></div>
           <div><strong>validUntil:</strong> <?= htmlspecialchars($_SESSION['sessionValidTo'] ?? '') ?></div>
@@ -380,12 +384,12 @@ $haveSession = isset($_SESSION['sessionReference']) && $_SESSION['sessionReferen
           <button type="button" class="btn btn-outline-secondary mt-2 copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('aesKeyB64').value)">Kopiuj</button>
         </div>
 
-      <?php elseif ($openError): ?>
+      <?php elseif ($openError) : ?>
         <div class="alert alert-danger">
           <strong>Błąd otwierania sesji:</strong>
           <pre class="mb-0"><?= htmlspecialchars($openError) ?></pre>
         </div>
-      <?php else: ?>
+      <?php else : ?>
         <div class="text-muted">Sesja nie została otwarta.</div>
       <?php endif; ?>
     </div>
@@ -396,27 +400,27 @@ $haveSession = isset($_SESSION['sessionReference']) && $_SESSION['sessionReferen
     <div class="card-body">
       <h2 class="h6">Wyślij fakturę FA(3) w bieżącej sesji</h2>
 
-      <?php if ($sendError): ?>
+      <?php if ($sendError) : ?>
         <div class="alert alert-danger">
           <strong>Błąd wysyłki:</strong>
           <pre class="mb-0"><?= htmlspecialchars($sendError) ?></pre>
         </div>
-      <?php elseif ($sendResp): ?>
+      <?php elseif ($sendResp) : ?>
         <div class="alert alert-success">
           <div><strong>referenceNumber:</strong> <?= htmlspecialchars($sendResp['referenceNumber'] ?? '') ?></div>
         </div>
-      <?php elseif (!empty($lastSendRef)): ?>
+      <?php elseif (!empty($lastSendRef)) : ?>
         <div class="alert alert-success">
           <div><strong>Ostatnia wysyłka (202):</strong> <?= htmlspecialchars($lastSendRef) ?></div>
         </div>
       <?php endif; ?>
 
-      <?php if ($statusError): ?>
+      <?php if ($statusError) : ?>
         <div class="alert alert-danger mt-3">
           <strong>Błąd pobierania statusu:</strong>
           <pre class="mb-0"><?= htmlspecialchars($statusError) ?></pre>
         </div>
-      <?php elseif ($statusData && $statusDesc): ?>
+      <?php elseif ($statusData && $statusDesc) : ?>
         <div class="card mt-3">
           <div class="card-body">
             <h3 class="h6">Status ostatniej faktury</h3>
@@ -442,24 +446,24 @@ $haveSession = isset($_SESSION['sessionReference']) && $_SESSION['sessionReferen
                         $ksefNumberView = (string)$statusData['numberInKSeF'];
                     }
                 }
-              ?>
-              <?php if ($ksefNumberView !== ''): ?>
+                ?>
+              <?php if ($ksefNumberView !== '') : ?>
                 Numer KSeF: <code><?= htmlspecialchars($ksefNumberView) ?></code>
               <?php endif; ?>
             </p>
 
-            <?php if (!empty($statusData['status']['details'])): ?>
+            <?php if (!empty($statusData['status']['details'])) : ?>
               <details class="mt-2">
                 <summary>Szczegóły (status.details)</summary>
                 <ul class="mt-2">
-                  <?php foreach ($statusData['status']['details'] as $d): ?>
+                  <?php foreach ($statusData['status']['details'] as $d) : ?>
                     <li><?= htmlspecialchars($d) ?></li>
                   <?php endforeach; ?>
                 </ul>
               </details>
             <?php endif; ?>
 
-            <?php if (!empty($ksefNumberView)): ?>
+            <?php if (!empty($ksefNumberView)) : ?>
               <hr>
               <form method="post" class="d-flex flex-column flex-md-row gap-2 align-items-start">
                 <input type="hidden" name="action" value="get_upo">
@@ -477,12 +481,12 @@ $haveSession = isset($_SESSION['sessionReference']) && $_SESSION['sessionReferen
         </div>
       <?php endif; ?>
 
-      <?php if ($upoError): ?>
+      <?php if ($upoError) : ?>
         <div class="alert alert-danger mt-3">
           <strong>Błąd pobierania UPO:</strong>
           <pre class="mb-0"><?= htmlspecialchars($upoError) ?></pre>
         </div>
-      <?php elseif ($upoXml !== null): ?>
+      <?php elseif ($upoXml !== null) : ?>
         <div class="card mt-3">
           <div class="card-body">
             <h3 class="h6">UPO ostatniej faktury (XML)</h3>
@@ -491,13 +495,13 @@ $haveSession = isset($_SESSION['sessionReference']) && $_SESSION['sessionReferen
         </div>
       <?php endif; ?>
 
-      <?php if ($haveSession && $accessToken): ?>
+      <?php if ($haveSession && $accessToken) : ?>
         <div class="mb-3 mt-3">
           <div class="small text-muted">Bieżący plik FA(3):</div>
           <code><?= htmlspecialchars($invoiceXmlPath) ?></code>
-          <?php if (!is_file($invoiceXmlPath)): ?>
+            <?php if (!is_file($invoiceXmlPath)) : ?>
             <div class="text-danger mt-1 small">Uwaga: plik nie istnieje — wysyłka zwróci błąd.</div>
-          <?php endif; ?>
+            <?php endif; ?>
         </div>
 
         <div class="row gy-3">
@@ -507,7 +511,7 @@ $haveSession = isset($_SESSION['sessionReference']) && $_SESSION['sessionReferen
               <button class="btn btn-primary">Wyślij fakturę z pliku</button>
             </form>
 
-            <?php if (!empty($lastSendRef)): ?>
+            <?php if (!empty($lastSendRef)) : ?>
               <form method="post">
                 <input type="hidden" name="action" value="check_status">
                 <button class="btn btn-outline-secondary">Sprawdź status ostatniej faktury</button>
@@ -520,7 +524,7 @@ $haveSession = isset($_SESSION['sessionReference']) && $_SESSION['sessionReferen
             kluczem i IV zadeklarowanymi przy otwarciu sesji.
           </div>
         </div>
-      <?php else: ?>
+      <?php else : ?>
         <div class="text-muted">Brak aktywnej sesji — odśwież stronę, aby spróbować ponownie.</div>
       <?php endif; ?>
     </div>
