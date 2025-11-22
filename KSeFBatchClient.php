@@ -237,7 +237,7 @@ final class KSeFBatchClient
     private function callProtectedJson(
         string $path,
         string $accessToken,
-        array|string|null $body = null,
+        $body = null,
         string $method = 'POST'
     ): array {
         // ...

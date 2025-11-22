@@ -106,7 +106,7 @@ final class KSeFXAdESClient
     }
 
     /** Wywołanie chronionego endpointu z Bearer. */
-    public function callProtected(string $path, string $accessToken, array|string|null $body = null, string $method = 'POST'): array
+    public function callProtected(string $path, string $accessToken, $body = null, string $method = 'POST'): array
     {
         $url = $this->absoluteUrl($path);
         $payload = is_array($body) ? json_encode($body, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : $body;

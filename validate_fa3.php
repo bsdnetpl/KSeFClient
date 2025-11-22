@@ -28,12 +28,19 @@ function validateXmlAgainstXsd(string $xmlContent, string $xsdUrl): array {
 function formatLibxmlErrors(array $errors, string $title = 'Błędy'): array {
     $out = [];
     foreach ($errors as $err) {
-        $level = match ($err->level) {
-            LIBXML_ERR_WARNING => 'Ostrzeżenie',
-            LIBXML_ERR_ERROR   => 'Błąd',
-            LIBXML_ERR_FATAL   => 'Błąd krytyczny',
-            default            => 'Info',
-        };
+        switch ($err->level) {
+            case LIBXML_ERR_WARNING:
+                $level = 'Ostrzeżenie';
+                break;
+            case LIBXML_ERR_ERROR:
+                $level = 'Błąd';
+                break;
+            case LIBXML_ERR_FATAL:
+                $level = 'Błąd krytyczny';
+                break;
+            default:
+                $level = 'Info';
+        }
         $out[] = [
             'level'   => $level,
             'code'    => $err->code,
