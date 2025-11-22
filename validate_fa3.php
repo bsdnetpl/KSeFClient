@@ -8,7 +8,8 @@ const DEFAULT_XSD_URL = 'https://audev.pl/ksef/schemat-fa3.xsd';
 // Upewnij się, że błędy libxml nie wylecą na ekran w surowej formie
 libxml_use_internal_errors(true);
 
-function validateXmlAgainstXsd(string $xmlContent, string $xsdUrl): array {
+function validateXmlAgainstXsd(string $xmlContent, string $xsdUrl): array
+{
     $dom = new DOMDocument();
     // Wczytanie XML z opcjami zwiększającymi precyzję numerów linii
     $loaded = $dom->loadXML($xmlContent, LIBXML_BIGLINES | LIBXML_NOCDATA | LIBXML_NONET);
@@ -25,7 +26,8 @@ function validateXmlAgainstXsd(string $xmlContent, string $xsdUrl): array {
     return ['ok' => false, 'errors' => formatLibxmlErrors(libxml_get_errors(), 'Błąd walidacji XSD')];
 }
 
-function formatLibxmlErrors(array $errors, string $title = 'Błędy'): array {
+function formatLibxmlErrors(array $errors, string $title = 'Błędy'): array
+{
     $out = [];
     foreach ($errors as $err) {
         switch ($err->level) {
@@ -54,7 +56,8 @@ function formatLibxmlErrors(array $errors, string $title = 'Błędy'): array {
     return $out;
 }
 
-function getPostedXml(): ?string {
+function getPostedXml(): ?string
+{
     // 1) Priorytet: upload pliku
     if (!empty($_FILES['xml_file']['tmp_name']) && is_uploaded_file($_FILES['xml_file']['tmp_name'])) {
         $content = file_get_contents($_FILES['xml_file']['tmp_name']);
@@ -125,17 +128,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </form>
 
-    <?php if ($result !== null): ?>
+    <?php if ($result !== null) : ?>
         <hr class="my-4">
-        <?php if ($result['ok']): ?>
+        <?php if ($result['ok']) : ?>
             <div class="alert alert-success">
                 ✅ XML jest <strong>poprawny</strong> względem podanego schematu XSD.
             </div>
-        <?php else: ?>
+        <?php else : ?>
             <div class="alert alert-danger">
                 ❌ XML <strong>nie przeszedł</strong> walidacji. Szczegóły poniżej.
             </div>
-            <?php if (!empty($result['errors'])): ?>
+            <?php if (!empty($result['errors'])) : ?>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped align-middle">
                         <thead class="table-light">
@@ -149,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($result['errors'] as $i => $e): ?>
+                        <?php foreach ($result['errors'] as $i => $e) : ?>
                             <tr>
                                 <td><?= $i + 1 ?></td>
                                 <td><?= htmlspecialchars($e['level'] ?? '', ENT_QUOTES) ?></td>
@@ -162,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </tbody>
                     </table>
                 </div>
-            <?php else: ?>
+            <?php else : ?>
                 <p class="text-muted">Brak dodatkowych informacji o błędach (sprawdź, czy libxml jest włączony).</p>
             <?php endif; ?>
         <?php endif; ?>
