@@ -245,3 +245,41 @@ curl -X POST "https://serwer.pl/ksef/ksef_qr_api.php?key=xxx" \
 ```
 Po wykonaniu komendy w katalogu pojawi się plik:
 guid.png
+# Bezpieczeństwo
+
+Wszystkie dane wrażliwe, takie jak ścieżki do certyfikatów, klucze prywatne i hasła, powinny być przechowywane wyłącznie w bazie danych w formie zakodowanej (np. z użyciem AES-256 lub OpenSSL).
+
+Odszyfrowanie tych danych powinno następować po stronie serwera i tylko na czas wykonywania konkretnej operacji, np. podczas uwierzytelnienia, podpisu XAdES lub szyfrowania faktury.
+W żadnym momencie klucz ani hasło nie powinny być przechowywane w postaci jawnej w plikach projektu, logach czy zmiennych środowiskowych.
+
+Zaleca się:
+
+- użycie dedykowanej klasy do szyfrowania i deszyfrowania danych (np. CryptoStorage),
+
+- oddzielenie danych konfiguracyjnych od logiki aplikacji,
+
+- regularne rotowanie kluczy i haseł dostępowych,
+
+- ograniczenie dostępu do katalogu z certyfikatami (chmod, chown).
+
+  # Monitoring ważności certyfikatów
+
+Z uwagi na to, że certyfikaty używane do komunikacji z KSeF mają ograniczoną ważność (zwykle 2 lata), zaleca się przygotowanie skryptu kontrolnego, który będzie cyklicznie sprawdzał datę wygaśnięcia certyfikatu i odpowiednio wcześnie informował o konieczności jego odnowienia.
+
+Rekomendowany mechanizm:
+
+- uruchamiany z CRON-a (np. raz dziennie lub raz w tygodniu),
+
+- odczytuje datę ważności certyfikatu (pole NotAfter),
+
+- porównuje ją z aktualną datą,
+
+jeśli do wygaśnięcia pozostaje mniej niż np. 30 / 14 / 7 dni, wysyła komunikat ostrzegawczy (np. e-mail, wpis w logach, webhook do systemu monitoringu).
+
+Dzięki temu minimalizuje się ryzyko sytuacji, w której:
+
+- certyfikat straci ważność,
+
+- biblioteka nie będzie mogła poprawnie uwierzytelnić się w KSeF,
+
+a wystawianie i wysyłka faktur zostaną zablokowane aż do ręcznej interwencji.
