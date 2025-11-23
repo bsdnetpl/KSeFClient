@@ -2,6 +2,13 @@ KSeFXAdESClient – KSeF 2.0, FA(3), XAdES + AES
 
 ☕ Jeśli chcesz mi podziękować za tę klasę / bibliotekę, możesz postawić mi wirtualną kawę:
 👉 https://suppi.pl/audev
+
+### W sprawie integracji, wsparcia technicznego lub wdrożenia biblioteki w Twoim systemie, proszę o kontakt:
+📧 adrian@bsd-net.pl
+
+**Uwaga: pomoc techniczna, integracja i wdrożenia są usługami odpłatnymi.
+Wsparcie udzielane jest wyłącznie po wcześniejszym kontakcie mailowym.**
+
 Opis
 
 KSeFXAdESClient to lekka klasa PHP obsługująca KSeF v2 (2.0) z wykorzystaniem:
