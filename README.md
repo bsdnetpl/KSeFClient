@@ -5,6 +5,7 @@ KSeFXAdESClient – KSeF 2.0, FA(3), XAdES + AES
 
 ### W sprawie integracji, wsparcia technicznego lub wdrożenia biblioteki w Twoim systemie, proszę o kontakt:
 📧 adrian@bsd-net.pl
+
 Możliwe integracje: 
 - C++ (np. aplikacje desktopowe lub serwisowe),
 - PHP (sklepy internetowe, panele administracyjne, systemy ERP),
