@@ -169,7 +169,7 @@ Przykładowy minimalny flow: uwierzytelnienie → sesja interaktywna → szyfrow
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/KSeFAuth.php';
+require_once __DIR__ . '/KSeFClient.php';
 
 // 1. Inicjalizacja klienta
 $client = new KSeFXAdESClient(
