@@ -160,7 +160,7 @@ Instalacja
 
 Skopiuj plik KSeFAuth.php do projektu (np. src/KSeF/KSeFXAdESClient.php) i załaduj go:
 ```php
-require_once __DIR__ . '/KSeFAuth.php';
+require_once __DIR__ . '/KSeFClient.php';
 ```
 Szybki start – wysyłka FA(3) do środowiska testowego KSeF
 
