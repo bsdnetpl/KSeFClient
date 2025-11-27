@@ -7,7 +7,7 @@ header('Content-Type: text/html; charset=utf-8');
 
 session_start();
 
-require __DIR__ . '/KSeFAuth.php';
+require __DIR__ . '/KSeFClient.php';
 
 // ===================== KONFIG =====================
 $nip      = '1111111111';
