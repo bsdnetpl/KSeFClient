@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 // Konfiguracja domyślnego XSD:
-const DEFAULT_XSD_URL = 'https://audev.pl/ksef/schemat-fa3.xsd';
+const DEFAULT_XSD_URL = 'https://serwer.pl/ksef/schemat-fa3.xsd';
 
 // Upewnij się, że błędy libxml nie wylecą na ekran w surowej formie
 libxml_use_internal_errors(true);
