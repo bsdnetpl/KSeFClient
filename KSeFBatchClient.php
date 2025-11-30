@@ -117,10 +117,10 @@ final class KSeFBatchClient
         array $batchMeta,
         string $encryptedSymmetricKeyB64,
         string $ivB64,
-        string $systemCode    = 'FA (2)',
+        string $systemCode = 'FA (2)',
         string $schemaVersion = '1-0E',
-        string $value         = 'FA',
-        bool   $offlineMode   = false
+        string $value = 'FA',
+        bool   $offlineMode = false
     ): array {
         // ...
     }
@@ -237,7 +237,7 @@ final class KSeFBatchClient
     private function callProtectedJson(
         string $path,
         string $accessToken,
-        array|string|null $body = null,
+        $body = null,
         string $method = 'POST'
     ): array {
         // ...

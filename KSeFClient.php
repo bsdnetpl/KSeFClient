@@ -34,8 +34,10 @@ final class KSeFXAdESClient
         $this->preChecks();
     }
 
-    public function withHttpDebug(bool $on = true): self {
-        $this->httpDebug = $on; return $this;
+    public function withHttpDebug(bool $on = true): self
+    {
+        $this->httpDebug = $on;
+        return $this;
     }
 
     /**
@@ -86,7 +88,7 @@ final class KSeFXAdESClient
                 'rawAccess'    => $accessResp,
             ];
         } catch (RuntimeException $e) {
-            if (str_contains($e->getMessage(), 'HTTP 401')) {
+            if (strpos($e->getMessage(), 'HTTP 401') !== false) {
                 return [
                     'authToken'   => (string)$authToken,
                     'validUntil'  => $validUntil ?: null,
@@ -99,14 +101,19 @@ final class KSeFXAdESClient
     }
 
     /** Normalizuje pole tokena (bywa, że serwer zwróci strukturę typu ["token"=>"..."]). */
-    private function normalizeTokenField($v) {
-        if (is_string($v)) return $v;
-        if (is_array($v) && isset($v['token']) && is_string($v['token'])) return $v['token'];
+    private function normalizeTokenField($v)
+    {
+        if (is_string($v)) {
+            return $v;
+        }
+        if (is_array($v) && isset($v['token']) && is_string($v['token'])) {
+            return $v['token'];
+        }
         return $v;
     }
 
     /** Wywołanie chronionego endpointu z Bearer. */
-    public function callProtected(string $path, string $accessToken, array|string|null $body = null, string $method = 'POST'): array
+    public function callProtected(string $path, string $accessToken, $body = null, string $method = 'POST'): array
     {
         $url = $this->absoluteUrl($path);
         $payload = is_array($body) ? json_encode($body, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : $body;
@@ -121,7 +128,11 @@ final class KSeFXAdESClient
 
         $raw = curl_exec($ch);
         $info = curl_getinfo($ch);
-        if ($raw === false) { $e = curl_error($ch); curl_close($ch); throw new RuntimeException('cURL error: ' . $e); }
+        if ($raw === false) {
+            $e = curl_error($ch);
+            curl_close($ch);
+            throw new RuntimeException('cURL error: ' . $e);
+        }
         curl_close($ch);
 
         $code = (int)($info['http_code'] ?? 0);
@@ -147,7 +158,11 @@ final class KSeFXAdESClient
 
         $raw = curl_exec($ch);
         $info = curl_getinfo($ch);
-        if ($raw === false) { $e = curl_error($ch); curl_close($ch); throw new RuntimeException('cURL error: ' . $e); }
+        if ($raw === false) {
+            $e = curl_error($ch);
+            curl_close($ch);
+            throw new RuntimeException('cURL error: ' . $e);
+        }
         curl_close($ch);
 
         $code = (int)($info['http_code'] ?? 0);
@@ -237,7 +252,7 @@ XML;
     }
 
     // ===== KROK 3: podpis xmlsec1 =====
-	    private function signXmlWithXmlSec1(string $xmlUnsigned): string
+    private function signXmlWithXmlSec1(string $xmlUnsigned): string
     {
         // tworzymy pliki tymczasowe przez helper
         $inPath  = $this->createTempFile('ksef-auth-unsigned-');
@@ -319,13 +334,21 @@ XML;
 
         $raw = curl_exec($ch);
         $info = curl_getinfo($ch);
-        if ($raw === false) { $e = curl_error($ch); curl_close($ch); throw new RuntimeException('cURL error: ' . $e); }
+        if ($raw === false) {
+            $e = curl_error($ch);
+            curl_close($ch);
+            throw new RuntimeException('cURL error: ' . $e);
+        }
         curl_close($ch);
 
         $code = (int)($info['http_code'] ?? 0);
         $decoded = json_decode($raw, true);
-        if ($decoded === null) throw new RuntimeException("Niepoprawny JSON (HTTP {$code}): ".$raw);
-        if ($code >= 400)   throw new RuntimeException("Błąd HTTP {$code} przy xades-signature: ".json_encode($decoded, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+        if ($decoded === null) {
+            throw new RuntimeException("Niepoprawny JSON (HTTP {$code}): ".$raw);
+        }
+        if ($code >= 400) {
+            throw new RuntimeException("Błąd HTTP {$code} przy xades-signature: ".json_encode($decoded, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+        }
         return $decoded;
     }
 
@@ -342,7 +365,9 @@ XML;
         $err  = $raw === false ? curl_error($ch) : null;
         curl_close($ch);
 
-        if ($raw === false) throw new RuntimeException('cURL error (access-token): ' . $err);
+        if ($raw === false) {
+            throw new RuntimeException('cURL error (access-token): ' . $err);
+        }
 
         if ($code === 405) { // fallback GET (historyczne zachowanie)
             $ch = curl_init($urlPrimary);
@@ -352,7 +377,9 @@ XML;
             $code= (int)($info['http_code'] ?? 0);
             $err = $raw === false ? curl_error($ch) : null;
             curl_close($ch);
-            if ($raw === false) throw new RuntimeException('cURL error (access-token GET): ' . $err);
+            if ($raw === false) {
+                throw new RuntimeException('cURL error (access-token GET): ' . $err);
+            }
         }
 
         if ($code === 401) {
@@ -367,7 +394,9 @@ XML;
 
             if ($rawAlt !== false) {
                 $decAlt = json_decode($rawAlt, true);
-                if ($codeAlt < 400 && is_array($decAlt)) return $decAlt;
+                if ($codeAlt < 400 && is_array($decAlt)) {
+                    return $decAlt;
+                }
             }
 
             throw new RuntimeException(
@@ -379,8 +408,12 @@ XML;
         }
 
         $decoded = json_decode($raw, true);
-        if ($decoded === null) throw new RuntimeException("Niepoprawny JSON z access-token (HTTP {$code}): " . $raw);
-        if ($code >= 400)     throw new RuntimeException("Błąd HTTP {$code} przy access-token: " . json_encode($decoded, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+        if ($decoded === null) {
+            throw new RuntimeException("Niepoprawny JSON z access-token (HTTP {$code}): " . $raw);
+        }
+        if ($code >= 400) {
+            throw new RuntimeException("Błąd HTTP {$code} przy access-token: " . json_encode($decoded, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+        }
         return $decoded;
     }
 
@@ -417,13 +450,19 @@ XML;
 
         $raw = curl_exec($ch);
         $info = curl_getinfo($ch);
-        if ($raw === false) { $e = curl_error($ch); curl_close($ch); throw new RuntimeException('cURL error: ' . $e); }
+        if ($raw === false) {
+            $e = curl_error($ch);
+            curl_close($ch);
+            throw new RuntimeException('cURL error: ' . $e);
+        }
         curl_close($ch);
 
         $code = (int)($info['http_code'] ?? 0);
         if ($code === 200) {
             $decoded = json_decode($raw, true);
-            if (!is_array($decoded)) throw new RuntimeException('Niepoprawny JSON (200): ' . $raw);
+            if (!is_array($decoded)) {
+                throw new RuntimeException('Niepoprawny JSON (200): ' . $raw);
+            }
             return $decoded;
         }
         if ($code === 400) {
@@ -440,12 +479,16 @@ XML;
     public function getPublicKeyCertificatesPem(?string $usageFilter = null): array
     {
         $items = $this->getPublicKeyCertificates();
-        if ($usageFilter !== null) $items = $this->pickCertificatesByUsage($items, $usageFilter);
+        if ($usageFilter !== null) {
+            $items = $this->pickCertificatesByUsage($items, $usageFilter);
+        }
 
         $out = [];
         foreach ($items as $it) {
             $derB64 = $it['certificate'] ?? null;
-            if (!is_string($derB64) || $derB64 === '') continue;
+            if (!is_string($derB64) || $derB64 === '') {
+                continue;
+            }
             $pem = $this->derBase64ToPem($derB64);
             $out[] = [
                 'pem'       => $pem,
@@ -510,9 +553,14 @@ XML;
         $chosen = null;
         foreach ($candidates as $c) {
             $vt = isset($c['validTo']) ? new \DateTimeImmutable($c['validTo']) : null;
-            if ($vt && $vt > $now) { $chosen = $c; break; }
+            if ($vt && $vt > $now) {
+                $chosen = $c;
+                break;
+            }
         }
-        if ($chosen === null) $chosen = $candidates[0];
+        if ($chosen === null) {
+            $chosen = $candidates[0];
+        }
 
         $pem = $chosen['pem'];
         if (!$this->isRsaPublicKeyPem($pem)) {
@@ -540,21 +588,25 @@ XML;
     private function isRsaPublicKeyPem(string $pem): bool
     {
         $res = @openssl_x509_read($pem);
-        if ($res === false) return false;
+        if ($res === false) {
+            return false;
+        }
         $pub = openssl_pkey_get_public($res);
-        if ($pub === false) return false;
+        if ($pub === false) {
+            return false;
+        }
         $det = openssl_pkey_get_details($pub);
         return is_array($det) && ($det['type'] ?? null) === OPENSSL_KEYTYPE_RSA;
     }
 
-	private function rsaOaepEncryptWithCertPem(string $certPem, string $plaintext): string
+    private function rsaOaepEncryptWithCertPem(string $certPem, string $plaintext): string
     {
         $certFile = $this->createTempFile('ksef-cert-');
         $inFile   = $this->createTempFile('ksef-plain-');
         $outFile  = $this->createTempFile('ksef-enc-');
 
         file_put_contents($certFile, $certPem);
-        file_put_contents($inFile,  $plaintext);
+        file_put_contents($inFile, $plaintext);
 
         try {
             $cmd = [
@@ -642,7 +694,7 @@ XML;
         string $plaintext
     ): array {
         $key = base64_decode($aesKeyB64, true);
-        $iv  = base64_decode($ivB64,  true);
+        $iv  = base64_decode($ivB64, true);
 
         if ($key === false || $iv === false) {
             throw new InvalidArgumentException('Nieprawidłowe Base64 dla klucza lub IV.');
@@ -675,32 +727,52 @@ XML;
     // ===== narzędzia =====
     private function preChecks(): void
     {
-        foreach (['xmlsec1', 'openssl'] as $bin) $this->assertBinary($bin);
-        if (!is_file($this->certPath)) throw new InvalidArgumentException('Brak pliku certyfikatu: ' . $this->certPath);
-        if (!is_file($this->keyPath))  throw new InvalidArgumentException('Brak pliku klucza: ' . $this->keyPath);
+        foreach (['xmlsec1', 'openssl'] as $bin) {
+            $this->assertBinary($bin);
+        }
+        if (!is_file($this->certPath)) {
+            throw new InvalidArgumentException('Brak pliku certyfikatu: ' . $this->certPath);
+        }
+        if (!is_file($this->keyPath)) {
+            throw new InvalidArgumentException('Brak pliku klucza: ' . $this->keyPath);
+        }
     }
 
     private function absoluteUrl(string $path): string
     {
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) return $path;
+        if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
+            return $path;
+        }
         return $this->baseUrl . '/' . ltrim($path, '/');
     }
 
-    private function xml(string $s): string { return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8'); }
+    private function xml(string $s): string
+    {
+        return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+    }
 
     private function assertBinary(string $bin): void
     {
         $this->run(['bash','-lc', "command -v " . escapeshellarg($bin)], $ret);
-        if ($ret !== 0) throw new RuntimeException("Brak programu w PATH: {$bin}");
+        if ($ret !== 0) {
+            throw new RuntimeException("Brak programu w PATH: {$bin}");
+        }
     }
 
     private function run(array $cmd, ?int &$exitCode = null): string
     {
         $desc = [1 => ['pipe','w'], 2 => ['pipe','w']];
         $p = proc_open($cmd, $desc, $pipes);
-        if (!\is_resource($p)) throw new RuntimeException('Nie udało się uruchomić procesu: ' . implode(' ', $cmd));
-        $out = stream_get_contents($pipes[1]); $err = stream_get_contents($pipes[2]);
-        foreach ($pipes as $h) if (\is_resource($h)) fclose($h);
+        if (!\is_resource($p)) {
+            throw new RuntimeException('Nie udało się uruchomić procesu: ' . implode(' ', $cmd));
+        }
+        $out = stream_get_contents($pipes[1]);
+        $err = stream_get_contents($pipes[2]);
+        foreach ($pipes as $h) {
+            if (\is_resource($h)) {
+                fclose($h);
+            }
+        }
         $exitCode = proc_close($p);
         return trim(($out ?? '') . ($err ? ("\n".$err) : ''));
     }
@@ -733,42 +805,57 @@ XML;
     {
         $out = $this->run(['bash','-lc', 'openssl x509 -in ' . escapeshellarg($this->certPath) . ' -noout -text | grep -Eo "Public Key Algorithm: .*" | sed "s/^ Public Key Algorithm: //; s/^Public Key Algorithm: //"'], $ret);
         $alg = trim($out);
-        if (stripos($alg, 'id-ecPublicKey') !== false || stripos($alg, 'EC') !== false) return 'ecdsa-sha256';
+        if (stripos($alg, 'id-ecPublicKey') !== false || stripos($alg, 'EC') !== false) {
+            return 'ecdsa-sha256';
+        }
         return 'rsa-sha256';
     }
 
     private function getCertSha256DigestBase64(): string
     {
         $out = $this->run(['bash','-lc', 'openssl x509 -in ' . escapeshellarg($this->certPath) . ' -outform der | openssl dgst -sha256 -binary | base64 -w0'], $ret);
-        if ($ret !== 0 || $out === '') throw new RuntimeException('Nie udało się policzyć digestu SHA256 certyfikatu.');
+        if ($ret !== 0 || $out === '') {
+            throw new RuntimeException('Nie udało się policzyć digestu SHA256 certyfikatu.');
+        }
         return trim($out);
     }
 
     private function getIssuerDnString(): string
     {
         $out = $this->run(['bash','-lc', 'openssl x509 -in ' . escapeshellarg($this->certPath) . ' -noout -issuer | sed "s/^issuer=//"'], $ret);
-        if ($ret !== 0 || $out === '') throw new RuntimeException('Nie udało się odczytać issuer DN z certyfikatu.');
+        if ($ret !== 0 || $out === '') {
+            throw new RuntimeException('Nie udało się odczytać issuer DN z certyfikatu.');
+        }
         return trim($out);
     }
 
     private function getSerialAsDecimal(): string
     {
         $hex = strtoupper(trim($this->run(['bash','-lc', 'openssl x509 -in ' . escapeshellarg($this->certPath) . ' -noout -serial | sed "s/^serial=//; s/://g"'], $ret)));
-        if ($ret !== 0 || $hex === '') throw new RuntimeException('Nie udało się odczytać numeru seryjnego z certyfikatu.');
+        if ($ret !== 0 || $hex === '') {
+            throw new RuntimeException('Nie udało się odczytać numeru seryjnego z certyfikatu.');
+        }
         return $this->hexToDecBig($hex);
     }
 
     private function getCertBodyBase64(): string
     {
         $pem = file_get_contents($this->certPath);
-        if ($pem === false) throw new RuntimeException('Nie mogę wczytać certyfikatu.');
-        if (preg_match('~-----BEGIN CERTIFICATE-----\s*(.+?)\s*-----END CERTIFICATE-----~s', $pem, $m)) return trim($m[1]);
+        if ($pem === false) {
+            throw new RuntimeException('Nie mogę wczytać certyfikatu.');
+        }
+        if (preg_match('~-----BEGIN CERTIFICATE-----\s*(.+?)\s*-----END CERTIFICATE-----~s', $pem, $m)) {
+            return trim($m[1]);
+        }
         return chunk_split(base64_encode($pem), 64, "\n");
     }
 
     private function hexToDecBig(string $hex): string
     {
-        $hex = ltrim($hex, "0"); if ($hex === '') return '0';
+        $hex = ltrim($hex, "0");
+        if ($hex === '') {
+            return '0';
+        }
         $dec = '0';
         for ($i=0,$len=strlen($hex); $i<$len; $i++) {
             $digit = hexdec($hex[$i]);
@@ -779,32 +866,40 @@ XML;
     }
     private function strAdd(string $a, string $b): string
     {
-        $a=strrev($a); $b=strrev($b); $carry=0; $out=''; $len=max(strlen($a),strlen($b));
-        for ($i=0;$i<$len;$i++){
+        $a=strrev($a);
+        $b=strrev($b);
+        $carry=0;
+        $out='';
+        $len=max(strlen($a), strlen($b));
+        for ($i=0; $i<$len; $i++) {
             $da=$i<strlen($a)?(int)$a[$i]:0;
             $db=$i<strlen($b)?(int)$b[$i]:0;
             $s=$da+$db+$carry;
             $out.=(string)($s%10);
-            $carry=intdiv($s,10);
+            $carry=intdiv($s, 10);
         }
-        if ($carry) $out.=(string)$carry;
+        if ($carry) {
+            $out.=(string)$carry;
+        }
         return strrev($out);
     }
     private function strMul(string $a, int $m): string
     {
-        $a=strrev($a); $carry=0; $out='';
-        for ($i=0;$i<strlen($a);$i++){
+        $a=strrev($a);
+        $carry=0;
+        $out='';
+        for ($i=0; $i<strlen($a); $i++) {
             $da=(int)$a[$i];
             $p=$da*$m+$carry;
             $out.=(string)($p%10);
-            $carry=intdiv($p,10);
+            $carry=intdiv($p, 10);
         }
-        while($carry>0){
+        while ($carry>0) {
             $out.=(string)($carry%10);
-            $carry=intdiv($carry,10);
+            $carry=intdiv($carry, 10);
         }
         $res=strrev($out);
-        return ltrim($res,'0')==='' ? '0' : ltrim($res,'0');
+        return ltrim($res, '0')==='' ? '0' : ltrim($res, '0');
     }
 
     private function applyCommonCurl($ch, array $headers, string $method = 'GET', int $timeout = 30): void
@@ -820,7 +915,7 @@ XML;
             curl_setopt($ch, CURLOPT_HEADER, true);
         }
     }
-	
+    
         /**
      * Tworzy tymczasowy plik, próbuje najpierw w sys_get_temp_dir(),
      * potem w __DIR__/tmp. Zwraca pełną ścieżkę.
@@ -852,7 +947,7 @@ XML;
 
         return $path;
     }
-	
+    
 
     /**
      * Zamknięcie sesji interaktywnej i start generowania zbiorczego UPO.
@@ -1141,5 +1236,3 @@ XML;
         ];
     }
 }
-
-

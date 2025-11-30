@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<ruleset name="lms-code-standard">
+
+    <description>PHP Code Sniffer configuration file</description>
+
+    <arg name="extensions" value="php"/>
+    <arg name="parallel" value="100"/>
+    <arg name="warning-severity" value="0"/>
+
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+
+    <rule ref="PSR2">
+        <exclude name="PSR1.Methods.CamelCapsMethodName"/>
+        <exclude name="PSR1.Classes.ClassDeclaration.MissingNamespace"/>
+        <exclude name="Squiz.Classes.ValidClassName"/>
+    </rule>
+
+</ruleset>
