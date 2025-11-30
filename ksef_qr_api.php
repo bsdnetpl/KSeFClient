@@ -1,6 +1,6 @@
 <?php
 // --- PROSTE ZABEZPIECZENIE API (KLUCZ W URL) ---
-$apiSecretKey = "xxx";
+$apiSecretKey = "T474Y0aY2yMApEkn";
 
 if (!isset($_GET['key']) || $_GET['key'] !== $apiSecretKey) {
     http_response_code(403);
@@ -17,7 +17,7 @@ ini_set('display_startup_errors', 0);
 error_reporting(E_ERROR | E_PARSE);
 
 // Ścieżka do biblioteki PHP QR Code
-require_once __DIR__ . '/../lib/phpqrcode.php';
+require_once __DIR__ . '/lib/phpqrcode.php';
 
 // CORS (opcjonalnie zawęź do swojej domeny)
 header('Access-Control-Allow-Origin: *');
@@ -211,6 +211,9 @@ if ($dataNorm === null) {
     exit;
 }
 
+// 🔹 Wymuszenie formatu Base64URL (niezależnie od źródła)
+$skrotSha256 = toBase64Url($skrotSha256);
+
 // Budowa URL KSeF
 $ulrApi         = rtrim($ulrApi, '/');
 $invoiceBaseUrl = $ulrApi . '/client-app/invoice';
@@ -264,4 +267,12 @@ function generateGuid(): string
         mt_rand(0, 0x3fff) | 0x8000,
         mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
     );
+}
+
+function toBase64Url(string $hash): string
+{
+    $hash = trim($hash);
+    $hash = rtrim($hash, '=');        // usuń padding
+    $hash = strtr($hash, '+/', '-_'); // zamień na URL-safe
+    return $hash;
 }
