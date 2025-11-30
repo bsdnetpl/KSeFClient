@@ -1,6 +1,6 @@
 <?php
 // --- PROSTE ZABEZPIECZENIE API (KLUCZ W URL) ---
-$apiSecretKey = "T474Y0aY2yMApEkn";
+$apiSecretKey = "xxx";
 
 if (!isset($_GET['key']) || $_GET['key'] !== $apiSecretKey) {
     http_response_code(403);
