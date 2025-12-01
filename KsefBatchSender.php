@@ -11,6 +11,8 @@ Do dalszej pracy potrzebne są jednak tabele z danymi do API oraz po stronie wys
 Innymi słowy – trudno to obecnie przerobić na w pełni uniwersalny kod gotowy do użycia, 
 ale będę stopniowo dążył do jego uporządkowania i unifikacji.
 Oczywiście osoby kumające bez problemu przepiszą sobie pod swoje środowisko…
+Przykładowy Cron:
+59 23 * * * /usr/bin/php /var/www/html/nazwa_skryptu.php >> /var/www/html/logs/cron_log.txt 2>&1
 */
 
 
