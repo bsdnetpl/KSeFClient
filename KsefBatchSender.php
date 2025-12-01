@@ -10,6 +10,7 @@ Po spełnieniu warunków klasa wykonuje wysyłkę.
 Do dalszej pracy potrzebne są jednak tabele z danymi do API oraz po stronie wysyłającej.
 Innymi słowy – trudno to obecnie przerobić na w pełni uniwersalny kod gotowy do użycia, 
 ale będę stopniowo dążył do jego uporządkowania i unifikacji.
+Oczywiście osoby kumające bez problemu przepiszą sobie pod swoje środowisko…
 */
 
 
