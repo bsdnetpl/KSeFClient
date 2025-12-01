@@ -1,11 +1,15 @@
 <?php
 /**
-Klasę wrzucam do wsadowego wysyłania faktur, ale jest dość skomplikowana, ponieważ działa w warunkach konkretnej bazy danych, przypisanej do określonych tabel. 
-Na tym etapie testuję jeszcze różne rozwiązania, dlatego traktuję to raczej jako ciekawostkę i wstępny plan działania na przyszłość, jeśli chodzi o metodę wsadową.
+Klasę wrzucam do wsadowego wysyłania faktur, ale jest dość skomplikowana, ponieważ działa w warunkach konkretnej bazy danych, 
+przypisanej do określonych tabel. 
+Na tym etapie testuję jeszcze różne rozwiązania, dlatego traktuję to raczej jako ciekawostkę i wstępny plan działania na przyszłość, 
+jeśli chodzi o metodę wsadową.
 Głównym założeniem jest to, że klasa opiera się na bazie danych i tabelach systemowych, w 
-których znajduje się informacja o niewysłaniu faktury do KSeF (pole typu bool) oraz wersja dokumentu FA(3). Po spełnieniu warunków klasa wykonuje wysyłkę.
+których znajduje się informacja o niewysłaniu faktury do KSeF (pole typu bool) oraz wersja dokumentu FA(3). 
+Po spełnieniu warunków klasa wykonuje wysyłkę.
 Do dalszej pracy potrzebne są jednak tabele z danymi do API oraz po stronie wysyłającej.
-Innymi słowy – trudno to obecnie przerobić na w pełni uniwersalny kod gotowy do użycia, ale będę stopniowo dążył do jego uporządkowania i unifikacji.
+Innymi słowy – trudno to obecnie przerobić na w pełni uniwersalny kod gotowy do użycia, 
+ale będę stopniowo dążył do jego uporządkowania i unifikacji.
 */
 
 
