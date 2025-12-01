@@ -7,6 +7,8 @@ których znajduje się informacja o niewysłaniu faktury do KSeF (pole typu bool
 Do dalszej pracy potrzebne są jednak tabele z danymi do API oraz po stronie wysyłającej.
 Innymi słowy – trudno to obecnie przerobić na w pełni uniwersalny kod gotowy do użycia, ale będę stopniowo dążył do jego uporządkowania i unifikacji.
 */
+
+
 class KsefBatchSender
 {
     private PDO $pdo;
@@ -537,7 +539,7 @@ HT;
             throw new RuntimeException('markAsSent: nie znaleziono faktury o numerze ' . $numer);
         }
     }
-
+	
     public function markAsError(string $numer, string $errorMessage): void
     {
         $numer        = trim($numer);
@@ -568,6 +570,79 @@ HT;
             throw new RuntimeException('markAsError: nie znaleziono faktury o numerze ' . $numer);
         }
     }
+	
+        /**
+     * Pobiera plik UPO (XML) z podanego URL i zapisuje go w kolumnie xml_Content
+     * w tabeli baza_fv dla wskazanej faktury (po polu numer).
+     */
+
+	public function downloadAndStoreInvoiceUpo(string $invoiceNumber, string $upoUrl): void
+{
+    $invoiceNumber = trim($invoiceNumber);
+    $upoUrl        = trim($upoUrl);
+
+    if ($invoiceNumber === '') {
+        throw new RuntimeException('downloadAndStoreInvoiceUpo: pusty numer faktury.');
+    }
+    if ($upoUrl === '') {
+        throw new RuntimeException('downloadAndStoreInvoiceUpo: pusty URL UPO.');
+    }
+
+    // ⚠️ UWAGA: to jest SAS URL, NIE dodajemy Authorization!
+    $ch = curl_init($upoUrl);
+    if ($ch === false) {
+        throw new RuntimeException('curl_init() zwrócił false przy pobieraniu UPO.');
+    }
+
+    $headers = [
+        'Accept: application/xml, application/octet-stream, */*',
+    ];
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS      => 5,
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_TIMEOUT        => 60,
+        CURLOPT_HTTPHEADER     => $headers,
+    ]);
+
+    $body     = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $err      = curl_error($ch);
+
+    curl_close($ch);
+
+    if ($body === false) {
+        throw new RuntimeException('Błąd cURL przy pobieraniu UPO: ' . $err);
+    }
+    if ($httpCode !== 200) {
+        throw new RuntimeException('HTTP ' . $httpCode . ' przy pobieraniu UPO: ' . substr($body, 0, 1000));
+    }
+
+    $upoXml = trim($body);
+    if ($upoXml === '') {
+        throw new RuntimeException('downloadAndStoreInvoiceUpo: puste UPO XML.');
+    }
+
+    // zapis do baza_fv.xml_Content
+    $sql = "UPDATE baza_fv SET xml_Content = :xml WHERE numer = :numer";
+
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->execute([
+        ':xml'   => $upoXml,
+        ':numer' => $invoiceNumber,
+    ]);
+
+    if ($stmt->rowCount() === 0) {
+        throw new RuntimeException(
+            'downloadAndStoreInvoiceUpo: nie znaleziono faktury o numerze ' . $invoiceNumber
+        );
+    }
+
+    echo "    ✅ UPO zostało pobrane i zapisane w xml_Content dla faktury {$invoiceNumber}.\n";
+}
+
 
     /* ================= STATUS + SUBMIT ================= */
 
@@ -576,7 +651,7 @@ HT;
      * i wypisuje pełną odpowiedź JSON.
      */
 
-	public function processBatchStatus(string $referenceNumber): int
+    public function processBatchStatus(string $referenceNumber): int
 {
     $referenceNumber = trim($referenceNumber);
     if ($referenceNumber === '') {
@@ -714,7 +789,8 @@ HT;
      *
      * Założenie: invoiceNumber z KSeF = numer z Twojej kolumny 'numer' w baza_fv.
      */
-    public function processBatchInvoices(string $referenceNumber, bool $updateDb = true): void
+
+	function processBatchInvoices(string $referenceNumber, bool $updateDb = true, bool $downloadUpoToDb = false): void
     {
         $referenceNumber = trim($referenceNumber);
         if ($referenceNumber === '') {
@@ -730,11 +806,12 @@ HT;
             $page = $this->callSessionInvoicesEndpoint($referenceNumber, $continuationToken, 100);
 
             $invoicesPage = $page['invoices'] ?? [];
-            if (is_array($invoicesPage)) {
-                $allInvoices = array_merge($allInvoices, $invoicesPage);
+            if (!empty($invoicesPage)) {
+                foreach ($invoicesPage as $inv) {
+                    $allInvoices[] = $inv;
+                }
             }
 
-            // token stronicowania – jak jest, ciągniemy dalej
             $continuationToken = $page['continuationToken'] ?? null;
         } while (!empty($continuationToken));
 
@@ -743,7 +820,6 @@ HT;
             return;
         }
 
-        // mapa kodów statusu faktury
         $invoiceStatusMap = [
             200 => 'Sukces (faktura przyjęta)',
             440 => 'Duplikat faktury',
@@ -785,6 +861,15 @@ HT;
                 if ($exp) {
                     echo "    UPO ważne do: {$exp}\n";
                 }
+
+                if ($downloadUpoToDb && $invoiceNo !== '(brak numeru faktury)') {
+                    try {
+                        $this->downloadAndStoreInvoiceUpo($invoiceNo, $upoUrl);
+                    } catch (\Throwable $e) {
+                        echo "    ⚠️ Błąd pobierania/zapisu UPO dla faktury {$invoiceNo}: "
+                             . $e->getMessage() . "\n";
+                    }
+                }
             }
 
             echo "\n";
@@ -819,7 +904,7 @@ HT;
      * POST /api/v2/sessions/batch/{referenceNumber}/close
      * Zamyka sesję wsadową – informuje KSeF, że wszystkie pliki zostały przesłane.
      */
-	    /**
+        /**
      * POST /api/v2/sessions/batch/{referenceNumber}/close
      * Zamyka sesję wsadową – informuje KSeF, że wszystkie pliki zostały przesłane.
      */
