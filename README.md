@@ -3,17 +3,24 @@ KSeFXAdESClient – KSeF 2.0, FA(3), XAdES + AES
 ☕ Jeśli chcesz mi podziękować za tę klasę / bibliotekę, możesz postawić mi wirtualną kawę:
 👉 https://suppi.pl/audev
 
-### W sprawie integracji, wsparcia technicznego lub wdrożenia biblioteki w Twoim systemie, proszę o kontakt:
+### W sprawie integracji, wsparcia technicznego lub wdrożenia biblioteki w Twoim systemie proszę o kontakt:
+
 📧 adrian@bsd-net.pl
 
-Możliwe integracje: 
-- C++ (np. aplikacje desktopowe lub serwisowe),
-- PHP (sklepy internetowe, panele administracyjne, systemy ERP),
-- C# / .NET (aplikacje biznesowe, API REST, usługi serwerowe),
-- frontendy w React lub Angular (integracja poprzez REST API).
+Możliwe integracje:
 
-**Uwaga: pomoc techniczna, integracja i wdrożenia są usługami odpłatnymi.
-Wsparcie udzielane jest wyłącznie po wcześniejszym kontakcie mailowym.**
+C++ (np. aplikacje desktopowe lub serwisowe),
+
+PHP (sklepy internetowe, panele administracyjne, systemy ERP),
+
+C# / .NET (aplikacje biznesowe, API REST, usługi serwerowe),
+
+Frontend w React lub Angular (integracja poprzez REST API).
+
+Istnieje możliwość uruchomienia klasy na dowolnym hostingu w ramach usługi integracji.
+
+** Uwaga: pomoc techniczna, integracja i wdrożenia są usługami odpłatnymi.
+Wsparcie udzielane jest wyłącznie po wcześniejszym kontakcie mailowym. **
 
 Opis
 
