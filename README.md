@@ -17,7 +17,7 @@ C# / .NET (aplikacje biznesowe, API REST, usługi serwerowe),
 
 Frontend w React lub Angular (integracja poprzez REST API).
 
-Istnieje możliwość uruchomienia klasy na dowolnym hostingu w ramach usługi integracji.
+### Istnieje możliwość uruchomienia klasy na dowolnym hostingu w ramach usługi integracji.
 
 **Uwaga: pomoc techniczna, integracja i wdrożenia są usługami odpłatnymi.
 Wsparcie udzielane jest wyłącznie po wcześniejszym kontakcie mailowym.**
